@@ -48,7 +48,8 @@ const createMockFirestore = () => {
     tournaments: new Map(),
     entries: new Map(),
     teams: new Map(),
-    settings: new Map()
+    settings: new Map(),
+    matchResults: new Map()
   };
 
   const createQuery = (collectionName, filters = [], orderByField = null, orderByDirection = 'asc') => {
