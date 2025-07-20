@@ -188,6 +188,51 @@ const initDevelopmentData = async (db) => {
       }
     }
     
+    // サンプルシリーズを作成
+    const sampleSeries = [
+      {
+        id: 'sample-series-1',
+        data: {
+          tournamentId: 'sample-tournament',
+          seriesTitle: '準決勝 - チームA vs チームB',
+          seriesType: 'BO3',
+          team1Name: 'チームA',
+          team2Name: 'チームB',
+          status: 'ongoing',
+          games: [],
+          winner: null,
+          notes: 'サンプルのBO3シリーズです',
+          createdBy: '123456789012345678',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      },
+      {
+        id: 'sample-series-2',
+        data: {
+          tournamentId: 'competitive-tournament',
+          seriesTitle: '決勝 - 最強チーム vs エリートチーム',
+          seriesType: 'BO5',
+          team1Name: '最強チーム',
+          team2Name: 'エリートチーム',
+          status: 'ongoing',
+          games: [],
+          winner: null,
+          notes: '最高峰限定大会の決勝戦',
+          createdBy: '123456789012345678',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+    ];
+    
+    for (const series of sampleSeries) {
+      const seriesDoc = await db.collection('series').doc(series.id).get();
+      if (!seriesDoc.exists) {
+        await db.collection('series').doc(series.id).set(series.data);
+      }
+    }
+    
     console.log('Development data setup completed successfully');
   } catch (error) {
     console.error('Error setting up development data:', error);
@@ -205,7 +250,7 @@ const clearDevelopmentData = async (db) => {
     console.log('Clearing development data...');
     
     // すべてのコレクションをクリア
-    const collections = ['users', 'tournaments', 'entries', 'teams', 'settings'];
+    const collections = ['users', 'tournaments', 'entries', 'teams', 'settings', 'series', 'matchResults'];
     
     for (const collectionName of collections) {
       const snapshot = await db.collection(collectionName).get();
@@ -236,7 +281,7 @@ const showDevelopmentStats = async (db) => {
   if (process.env.NODE_ENV !== 'development') return;
   
   try {
-    const collections = ['users', 'tournaments', 'entries', 'teams', 'settings'];
+    const collections = ['users', 'tournaments', 'entries', 'teams', 'settings', 'series', 'matchResults'];
     const stats = {};
     
     for (const collectionName of collections) {

@@ -49,6 +49,7 @@ const createMockFirestore = () => {
     entries: new Map(),
     teams: new Map(),
     settings: new Map(),
+    series: new Map(),
     matchResults: new Map(),
     sessions: new Map() // Add sessions collection for session storage
   };
