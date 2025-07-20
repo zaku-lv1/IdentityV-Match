@@ -5,6 +5,8 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const FirestoreStore = require('firestore-store')(session);
+const FileStore = require('session-file-store')(session);
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -45,14 +47,43 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session configuration
+// Session configuration with persistent store for maintaining login state across restarts
+const createSessionStore = () => {
+  // For production with proper Firebase setup, use Firestore session store
+  if (process.env.NODE_ENV === 'production' && process.env.USE_FIRESTORE_SESSIONS === 'true') {
+    try {
+      const db = getDb();
+      console.log('Using Firestore session store for production persistence');
+      return new FirestoreStore({
+        database: db,
+        collection: 'sessions'
+      });
+    } catch (error) {
+      console.warn('Failed to create Firestore session store, falling back to file store:', error.message);
+    }
+  }
+  
+  // Use file-based store for development and fallback
+  console.log('Using file-based session store for development persistence');
+  return new FileStore({
+    path: path.join(__dirname, '../sessions'),
+    ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+    retries: 0,
+    factor: 1,
+    minTimeout: 50,
+    maxTimeout: 100
+  });
+};
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'development-secret-key',
   resave: false,
   saveUninitialized: false,
+  store: createSessionStore(),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    httpOnly: true, // Prevent XSS attacks
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days for better persistence
   }
 }));
 
@@ -141,6 +172,33 @@ if (process.env.NODE_ENV === 'development') {
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
+  });
+
+  // Test endpoint to simulate session creation
+  app.get('/dev/test-session', (req, res) => {
+    // Force session creation by setting a value
+    req.session.testData = {
+      created: new Date().toISOString(),
+      id: Math.random().toString(36).substr(2, 9)
+    };
+    
+    res.json({
+      message: 'Test session created',
+      sessionId: req.sessionID,
+      testData: req.session.testData,
+      sessionStore: 'file-based for development'
+    });
+  });
+
+  // Test endpoint to check session persistence
+  app.get('/dev/check-session', (req, res) => {
+    res.json({
+      message: 'Session check',
+      sessionId: req.sessionID,
+      hasSession: !!req.session,
+      testData: req.session?.testData || null,
+      sessionStore: 'file-based for development'
+    });
   });
 }
 
