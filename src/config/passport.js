@@ -28,6 +28,7 @@ passport.use(new DiscordStrategy({
       // New user
       userData.hunterRank = null;
       userData.survivorRank = null;
+      userData.identityVAccountId = null;
       userData.createdAt = admin.firestore.FieldValue.serverTimestamp();
     }
     
