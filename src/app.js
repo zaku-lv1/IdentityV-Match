@@ -49,8 +49,21 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session configuration with persistent store for maintaining login state across restarts
 const createSessionStore = () => {
-  // Always use file-based store for development and testing
-  // In production with proper Firebase setup, this can be switched to Firestore
+  // For production with proper Firebase setup, use Firestore session store
+  if (process.env.NODE_ENV === 'production' && process.env.USE_FIRESTORE_SESSIONS === 'true') {
+    try {
+      const db = getDb();
+      console.log('Using Firestore session store for production persistence');
+      return new FirestoreStore({
+        database: db,
+        collection: 'sessions'
+      });
+    } catch (error) {
+      console.warn('Failed to create Firestore session store, falling back to file store:', error.message);
+    }
+  }
+  
+  // Use file-based store for development and fallback
   console.log('Using file-based session store for development persistence');
   return new FileStore({
     path: path.join(__dirname, '../sessions'),
@@ -159,6 +172,33 @@ if (process.env.NODE_ENV === 'development') {
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
+  });
+
+  // Test endpoint to simulate session creation
+  app.get('/dev/test-session', (req, res) => {
+    // Force session creation by setting a value
+    req.session.testData = {
+      created: new Date().toISOString(),
+      id: Math.random().toString(36).substr(2, 9)
+    };
+    
+    res.json({
+      message: 'Test session created',
+      sessionId: req.sessionID,
+      testData: req.session.testData,
+      sessionStore: 'file-based for development'
+    });
+  });
+
+  // Test endpoint to check session persistence
+  app.get('/dev/check-session', (req, res) => {
+    res.json({
+      message: 'Session check',
+      sessionId: req.sessionID,
+      hasSession: !!req.session,
+      testData: req.session?.testData || null,
+      sessionStore: 'file-based for development'
+    });
   });
 }
 
