@@ -48,6 +48,25 @@
                 </div>
             </div>
 
+            <div class="settings-section">
+                <h3>大会スコアリングシステム</h3>
+                <div class="form-group">
+                    <label for="enableBonusScoring">
+                        <input type="checkbox" id="enableBonusScoring" name="enableBonusScoring" 
+                               <%= settings.enableBonusScoring ? 'checked' : '' %>>
+                        4吊りボーナスポイントを有効にする
+                    </label>
+                    <small>通常の1v4ゲームで4人全員を吊った場合に追加ポイント（1ポイント）を付与します（4:0 → 5:0）</small>
+                </div>
+                <div class="scoring-explanation">
+                    <h4>スコアリングシステムについて</h4>
+                    <ul>
+                        <li><strong>通常システム:</strong> 吊り数:逃げ数 (0:4, 1:3, 2:2, 3:1, 4:0)</li>
+                        <li><strong>ボーナス有効時:</strong> 4吊り時に追加で1ポイント (0:4, 1:3, 2:2, 3:1, 5:0)</li>
+                    </ul>
+                </div>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">設定を保存</button>
                 <a href="/admin" class="btn btn-secondary">戻る</a>
@@ -76,5 +95,34 @@
             </div>
         </div>
     </main>
+
+    <style>
+        .scoring-explanation {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 184, 148, 0.1);
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+        }
+
+        .scoring-explanation h4 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .scoring-explanation ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .scoring-explanation li {
+            margin: 0.3rem 0;
+            color: var(--text-secondary);
+        }
+
+        .form-group label input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+    </style>
 </body>
 </html>

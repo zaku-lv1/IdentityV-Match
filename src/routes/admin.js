@@ -215,14 +215,94 @@ router.get('/settings', requireAdmin, async (req, res) => {
   }
 });
 
+// Match Results Management
+router.get('/match-results', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const resultsSnapshot = await db.collection('matchResults')
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    const results = resultsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Get tournaments for the form
+    const tournamentsSnapshot = await db.collection('tournaments').get();
+    const tournaments = tournamentsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    res.render('admin/match-results', { user: req.user, results, tournaments });
+  } catch (error) {
+    console.error('Error loading match results:', error);
+    res.status(500).render('error', { message: 'Failed to load match results', user: req.user });
+  }
+});
+
+router.post('/match-results', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const {
+      tournamentId,
+      matchTitle,
+      hunterPlayer,
+      survivorPlayers,
+      eliminatedCount,
+      escapedCount,
+      notes
+    } = req.body;
+    
+    // Get scoring settings
+    const settingsDoc = await db.collection('settings').doc('general').get();
+    const settings = settingsDoc.data() || {};
+    const enableBonusScoring = settings.enableBonusScoring || false;
+    
+    // Calculate points
+    let hunterPoints = parseInt(eliminatedCount) || 0;
+    let survivorPoints = parseInt(escapedCount) || 0;
+    
+    // Apply bonus scoring if enabled and hunter got 4 eliminations
+    if (enableBonusScoring && hunterPoints === 4) {
+      hunterPoints = 5;
+      survivorPoints = 0;
+    }
+    
+    const matchData = {
+      tournamentId,
+      matchTitle,
+      hunterPlayer,
+      survivorPlayers: survivorPlayers.split(',').map(p => p.trim()).filter(p => p),
+      eliminatedCount: parseInt(eliminatedCount),
+      escapedCount: parseInt(escapedCount),
+      hunterPoints,
+      survivorPoints,
+      bonusApplied: enableBonusScoring && parseInt(eliminatedCount) === 4,
+      notes: notes || '',
+      createdBy: req.user.discordId,
+      createdAt: new Date()
+    };
+    
+    await db.collection('matchResults').add(matchData);
+    
+    res.redirect('/admin/match-results?success=added');
+  } catch (error) {
+    console.error('Error adding match result:', error);
+    res.status(500).render('error', { message: 'Failed to add match result', user: req.user });
+  }
+});
+
 router.post('/settings', requireAdmin, async (req, res) => {
   try {
     const db = getDb();
-    const { allowedGuildId, adminUserIds } = req.body;
+    const { allowedGuildId, adminUserIds, enableBonusScoring } = req.body;
     
     const settingsData = {
       allowedGuildId: allowedGuildId || null,
       adminUserIds: adminUserIds ? adminUserIds.split(',').map(id => id.trim()) : [],
+      enableBonusScoring: enableBonusScoring === 'on',
       updatedAt: new Date()
     };
     

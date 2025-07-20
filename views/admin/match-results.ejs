@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>試合結果管理 - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <a href="/admin" class="active">管理画面</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>🏆 試合結果管理</h2>
+            <p>大会の試合結果を記録・管理します</p>
+        </div>
+
+        <div class="match-results-content">
+            <!-- Add Match Result Form -->
+            <div class="add-result-section card">
+                <h3>➕ 新しい試合結果を追加</h3>
+                <form action="/admin/match-results" method="POST" class="match-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentId">大会選択</label>
+                            <select id="tournamentId" name="tournamentId" required>
+                                <option value="">大会を選択してください</option>
+                                <% tournaments.forEach(tournament => { %>
+                                    <option value="<%= tournament.id %>"><%= tournament.title %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="matchTitle">試合名</label>
+                            <input type="text" id="matchTitle" name="matchTitle" required 
+                                   placeholder="例: 準決勝第1戦">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hunterPlayer">ハンタープレイヤー</label>
+                            <input type="text" id="hunterPlayer" name="hunterPlayer" required 
+                                   placeholder="ハンターのプレイヤー名">
+                        </div>
+                        <div class="form-group">
+                            <label for="survivorPlayers">サバイバープレイヤー（カンマ区切り）</label>
+                            <input type="text" id="survivorPlayers" name="survivorPlayers" required 
+                                   placeholder="例: プレイヤー1, プレイヤー2, プレイヤー3, プレイヤー4">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eliminatedCount">吊り数</label>
+                            <select id="eliminatedCount" name="eliminatedCount" required>
+                                <option value="0">0人</option>
+                                <option value="1">1人</option>
+                                <option value="2">2人</option>
+                                <option value="3">3人</option>
+                                <option value="4">4人</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="escapedCount">逃げ数</label>
+                            <select id="escapedCount" name="escapedCount" required>
+                                <option value="0">0人</option>
+                                <option value="1">1人</option>
+                                <option value="2">2人</option>
+                                <option value="3">3人</option>
+                                <option value="4">4人</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">メモ・備考</label>
+                        <textarea id="notes" name="notes" rows="3" 
+                                  placeholder="試合に関する追加情報があれば記入してください"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 結果を保存</button>
+                        <button type="button" class="btn btn-secondary" onclick="calculatePoints()">📊 ポイント計算確認</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results List -->
+            <div class="results-list-section card">
+                <h3>📋 試合結果一覧</h3>
+                <% if (results.length === 0) { %>
+                    <div class="no-results">
+                        <p>まだ試合結果が記録されていません。</p>
+                    </div>
+                <% } else { %>
+                    <div class="results-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>試合名</th>
+                                    <th>ハンター</th>
+                                    <th>結果</th>
+                                    <th>ポイント</th>
+                                    <th>日時</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% results.forEach(result => { %>
+                                    <tr>
+                                        <td>
+                                            <strong><%= result.matchTitle %></strong>
+                                            <% if (result.bonusApplied) { %>
+                                                <span class="bonus-badge">ボーナス</span>
+                                            <% } %>
+                                        </td>
+                                        <td><%= result.hunterPlayer %></td>
+                                        <td>
+                                            <span class="result-score">
+                                                <%= result.eliminatedCount %>吊り : <%= result.escapedCount %>逃げ
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="points hunter-points"><%= result.hunterPoints %></span>
+                                            :
+                                            <span class="points survivor-points"><%= result.survivorPoints %></span>
+                                        </td>
+                                        <td>
+                                            <%= result.createdAt?.toDate ? result.createdAt.toDate().toLocaleDateString('ja-JP') : '不明' %>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-small btn-info" onclick="viewDetails('<%= result.id %>')">詳細</button>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <% if (typeof query !== 'undefined' && query.success) { %>
+            <div class="success-message">
+                ✅ 試合結果が正常に保存されました！
+            </div>
+        <% } %>
+    </main>
+
+    <style>
+        .match-results-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .add-result-section,
+        .results-list-section {
+            padding: 2rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .results-table {
+            overflow-x: auto;
+        }
+
+        .results-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .results-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .result-score {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .points {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .hunter-points {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .survivor-points {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .bonus-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background: var(--warning-color);
+            color: var(--background-dark);
+            font-size: 0.7rem;
+            font-weight: 600;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-info {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: var(--secondary-dark);
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        function calculatePoints() {
+            const eliminated = parseInt(document.getElementById('eliminatedCount').value) || 0;
+            const escaped = parseInt(document.getElementById('escapedCount').value) || 0;
+            
+            if (eliminated + escaped !== 4) {
+                alert('吊り数と逃げ数の合計が4になるようにしてください。');
+                return;
+            }
+            
+            let hunterPoints = eliminated;
+            let survivorPoints = escaped;
+            let bonusMessage = '';
+            
+            // Check if bonus scoring would apply (this is a client-side approximation)
+            if (eliminated === 4) {
+                bonusMessage = '\n\n⚠️ 4吊りの場合、ボーナススコアリングが有効だとハンターポイントが5ポイントになります。';
+            }
+            
+            alert(`ポイント計算結果:\nハンター: ${hunterPoints}ポイント\nサバイバー: ${survivorPoints}ポイント${bonusMessage}`);
+        }
+        
+        function viewDetails(resultId) {
+            // This would open a modal or navigate to a detail page
+            alert('詳細表示機能は今後実装予定です。ID: ' + resultId);
+        }
+        
+        // Auto-calculate escaped count when eliminated count changes
+        document.getElementById('eliminatedCount').addEventListener('change', function() {
+            const eliminated = parseInt(this.value) || 0;
+            const escaped = 4 - eliminated;
+            document.getElementById('escapedCount').value = escaped;
+        });
+    </script>
+</body>
+</html>

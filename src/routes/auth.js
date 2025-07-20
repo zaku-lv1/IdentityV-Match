@@ -50,7 +50,7 @@ router.get('/profile', requireAuth, (req, res) => {
 
 router.post('/profile', requireAuth, async (req, res) => {
   try {
-    const { hunterRank, survivorRank } = req.body;
+    const { hunterRank, survivorRank, identityVAccountId } = req.body;
     const db = getDb();
     
     // Validate ranks (1-8, where 8 is 最高峰)
@@ -59,9 +59,15 @@ router.post('/profile', requireAuth, async (req, res) => {
       return res.redirect('/auth/profile?error=invalid_rank');
     }
     
+    // Validate IdentityV Account ID (should be numeric if provided)
+    if (identityVAccountId && !/^\d+$/.test(identityVAccountId)) {
+      return res.redirect('/auth/profile?error=invalid_account_id');
+    }
+    
     const updateData = {
       hunterRank: parseInt(hunterRank),
       survivorRank: parseInt(survivorRank),
+      identityVAccountId: identityVAccountId || null,
       updatedAt: new Date()
     };
     
@@ -70,6 +76,7 @@ router.post('/profile', requireAuth, async (req, res) => {
     // Update the session user data
     req.user.hunterRank = parseInt(hunterRank);
     req.user.survivorRank = parseInt(survivorRank);
+    req.user.identityVAccountId = identityVAccountId || null;
     
     res.redirect('/?success=profile_updated');
   } catch (error) {
