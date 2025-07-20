@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= series.seriesTitle %> - シリーズ詳細</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <a href="/admin" class="active">管理画面</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <div class="breadcrumb">
+                <a href="/admin/series">← シリーズ管理に戻る</a>
+            </div>
+            <h2>🏆 <%= series.seriesTitle %></h2>
+            <p><%= series.team1Name %> vs <%= series.team2Name %> (<%= series.seriesType %>)</p>
+        </div>
+
+        <div class="series-detail-content">
+            <!-- Series Status -->
+            <div class="series-status card">
+                <h3>📊 シリーズ状況</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <label>形式</label>
+                        <span class="series-type <%= series.seriesType.toLowerCase() %>"><%= series.seriesType %></span>
+                    </div>
+                    <div class="status-item">
+                        <label>状態</label>
+                        <span class="status-badge <%= series.status %>">
+                            <%= series.status === 'ongoing' ? '進行中' : '完了' %>
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <label>現在のスコア</label>
+                        <span class="score-display">
+                            <% 
+                            const team1Wins = (series.games || []).filter(g => g.winner === 'team1').length;
+                            const team2Wins = (series.games || []).filter(g => g.winner === 'team2').length;
+                            %>
+                            <%= team1Wins %> - <%= team2Wins %>
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <label>勝者</label>
+                        <% if (series.winner) { %>
+                            <span class="winner-name">
+                                <%= series.winner === 'team1' ? series.team1Name : series.team2Name %>
+                            </span>
+                        <% } else { %>
+                            <span class="no-winner">まだ決まっていません</span>
+                        <% } %>
+                    </div>
+                </div>
+
+                <% if (series.status === 'ongoing') { %>
+                    <div class="next-game-info">
+                        <p><strong>次のゲーム:</strong> ゲーム <%= (series.games || []).length + 1 %></p>
+                        <% 
+                        const maxGames = series.seriesType === 'BO3' ? 3 : 5;
+                        const requiredWins = series.seriesType === 'BO3' ? 2 : 3;
+                        %>
+                        <p><strong>勝利条件:</strong> <%= requiredWins %>勝先取 (最大<%= maxGames %>ゲーム)</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Games List -->
+            <div class="games-list card">
+                <h3>🎮 ゲーム結果</h3>
+                <% if (matches.length === 0) { %>
+                    <div class="no-games">
+                        <p>まだゲーム結果が記録されていません。</p>
+                        <a href="/admin/match-results" class="btn btn-primary">🎯 ゲーム結果を追加</a>
+                    </div>
+                <% } else { %>
+                    <div class="games-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ゲーム</th>
+                                    <th>試合名</th>
+                                    <th>ハンター</th>
+                                    <th>結果</th>
+                                    <th>ポイント</th>
+                                    <th>勝者</th>
+                                    <th>日時</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% matches.forEach(match => { %>
+                                    <tr class="game-row">
+                                        <td>
+                                            <span class="game-number">ゲーム <%= match.gameNumber %></span>
+                                        </td>
+                                        <td>
+                                            <strong><%= match.matchTitle %></strong>
+                                            <% if (match.bonusApplied) { %>
+                                                <span class="bonus-badge">ボーナス</span>
+                                            <% } %>
+                                        </td>
+                                        <td><%= match.hunterPlayer %></td>
+                                        <td>
+                                            <span class="result-score">
+                                                <%= match.eliminatedCount %>吊り : <%= match.escapedCount %>逃げ
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="points hunter-points"><%= match.hunterPoints %></span>
+                                            :
+                                            <span class="points survivor-points"><%= match.survivorPoints %></span>
+                                        </td>
+                                        <td>
+                                            <span class="game-winner <%= match.gameWinner %>">
+                                                <%= match.gameWinner === 'team1' ? series.team1Name : series.team2Name %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <%= match.createdAt?.toDate ? match.createdAt.toDate().toLocaleDateString('ja-JP') : '不明' %>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <% if (series.status === 'ongoing') { %>
+                        <div class="add-game-action">
+                            <a href="/admin/match-results?seriesId=<%= series.id %>" class="btn btn-primary">
+                                ➕ 次のゲーム結果を追加
+                            </a>
+                        </div>
+                    <% } %>
+                <% } %>
+            </div>
+
+            <!-- Series Timeline -->
+            <div class="series-timeline card">
+                <h3>📈 シリーズ進行</h3>
+                <div class="timeline">
+                    <% 
+                    const maxGames = series.seriesType === 'BO3' ? 3 : 5;
+                    for (let i = 1; i <= maxGames; i++) {
+                        const game = (series.games || []).find(g => g.gameNumber === i);
+                    %>
+                        <div class="timeline-item <%= game ? 'completed' : 'pending' %>">
+                            <div class="timeline-marker">
+                                <% if (game) { %>
+                                    ✓
+                                <% } else { %>
+                                    <%= i %>
+                                <% } %>
+                            </div>
+                            <div class="timeline-content">
+                                <h4>ゲーム <%= i %></h4>
+                                <% if (game) { %>
+                                    <p>勝者: <%= game.winner === 'team1' ? series.team1Name : series.team2Name %></p>
+                                    <p>スコア: <%= game.hunterPoints %> - <%= game.survivorPoints %></p>
+                                <% } else { %>
+                                    <p>未実施</p>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <% if (series.notes) { %>
+                <div class="series-notes card">
+                    <h3>📝 メモ・備考</h3>
+                    <p><%= series.notes %></p>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <style>
+        .breadcrumb {
+            margin-bottom: 1rem;
+        }
+
+        .breadcrumb a {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .series-detail-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .series-status,
+        .games-list,
+        .series-timeline,
+        .series-notes {
+            padding: 2rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .status-item label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .series-type {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .series-type.bo3 {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .series-type.bo5 {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .status-badge.ongoing {
+            background: var(--warning-color);
+            color: var(--background-dark);
+        }
+
+        .status-badge.completed {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .score-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .winner-name {
+            font-weight: 700;
+            color: var(--success-color);
+            font-size: 1.1rem;
+        }
+
+        .no-winner {
+            color: var(--text-secondary);
+        }
+
+        .next-game-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .games-table {
+            overflow-x: auto;
+        }
+
+        .games-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .games-table th,
+        .games-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .games-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .game-number {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .result-score {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .points {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .hunter-points {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .survivor-points {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .game-winner {
+            font-weight: 700;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .game-winner.team1 {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .game-winner.team2 {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .bonus-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background: var(--warning-color);
+            color: var(--background-dark);
+            font-size: 0.7rem;
+            font-weight: 600;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .no-games {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .add-game-action {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 2px solid transparent;
+        }
+
+        .timeline-item.completed {
+            background: rgba(40, 167, 69, 0.1);
+            border-color: var(--success-color);
+        }
+
+        .timeline-item.pending {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--border-color);
+        }
+
+        .timeline-marker {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .timeline-item.completed .timeline-marker {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .timeline-item.pending .timeline-marker {
+            background: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .timeline-content h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-color);
+        }
+
+        .timeline-content p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+</html>

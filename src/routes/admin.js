@@ -215,6 +215,98 @@ router.get('/settings', requireAdmin, async (req, res) => {
   }
 });
 
+// Series Management
+router.get('/series', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const seriesSnapshot = await db.collection('series')
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    const series = seriesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Get tournaments for the form
+    const tournamentsSnapshot = await db.collection('tournaments').get();
+    const tournaments = tournamentsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    res.render('admin/series', { user: req.user, series, tournaments });
+  } catch (error) {
+    console.error('Error loading series:', error);
+    res.status(500).render('error', { message: 'Failed to load series', user: req.user });
+  }
+});
+
+router.post('/series', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const {
+      tournamentId,
+      seriesTitle,
+      seriesType,
+      team1Name,
+      team2Name,
+      notes
+    } = req.body;
+    
+    const seriesData = {
+      tournamentId,
+      seriesTitle,
+      seriesType, // 'BO3' or 'BO5'
+      team1Name,
+      team2Name,
+      status: 'ongoing', // 'ongoing', 'completed'
+      games: [],
+      winner: null,
+      notes: notes || '',
+      createdBy: req.user.discordId,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const docRef = await db.collection('series').add(seriesData);
+    
+    res.redirect(`/admin/series/${docRef.id}`);
+  } catch (error) {
+    console.error('Error creating series:', error);
+    res.status(500).render('error', { message: 'Failed to create series', user: req.user });
+  }
+});
+
+router.get('/series/:id', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const seriesDoc = await db.collection('series').doc(req.params.id).get();
+    
+    if (!seriesDoc.exists) {
+      return res.status(404).render('error', { message: 'Series not found', user: req.user });
+    }
+    
+    const series = { id: seriesDoc.id, ...seriesDoc.data() };
+    
+    // Get matches for this series
+    const matchesSnapshot = await db.collection('matchResults')
+      .where('seriesId', '==', req.params.id)
+      .orderBy('gameNumber', 'asc')
+      .get();
+    
+    const matches = matchesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    res.render('admin/series-detail', { user: req.user, series, matches });
+  } catch (error) {
+    console.error('Error loading series detail:', error);
+    res.status(500).render('error', { message: 'Failed to load series', user: req.user });
+  }
+});
+
 // Match Results Management
 router.get('/match-results', requireAdmin, async (req, res) => {
   try {
@@ -235,7 +327,18 @@ router.get('/match-results', requireAdmin, async (req, res) => {
       ...doc.data()
     }));
     
-    res.render('admin/match-results', { user: req.user, results, tournaments });
+    // Get active series for the form
+    const seriesSnapshot = await db.collection('series')
+      .where('status', '==', 'ongoing')
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    const activeSeries = seriesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    res.render('admin/match-results', { user: req.user, results, tournaments, activeSeries });
   } catch (error) {
     console.error('Error loading match results:', error);
     res.status(500).render('error', { message: 'Failed to load match results', user: req.user });
@@ -247,11 +350,13 @@ router.post('/match-results', requireAdmin, async (req, res) => {
     const db = getDb();
     const {
       tournamentId,
+      seriesId,
       matchTitle,
       hunterPlayer,
       survivorPlayers,
       eliminatedCount,
       escapedCount,
+      hunterTeam,
       notes
     } = req.body;
     
@@ -270,22 +375,62 @@ router.post('/match-results', requireAdmin, async (req, res) => {
       survivorPoints = 0;
     }
     
+    // Determine which team won this game
+    const gameWinner = hunterPoints > survivorPoints ? hunterTeam : (hunterTeam === 'team1' ? 'team2' : 'team1');
+    
+    let gameNumber = 1;
+    let seriesData = null;
+    
+    // If this is part of a series, get the current game number and series info
+    if (seriesId) {
+      const seriesDoc = await db.collection('series').doc(seriesId).get();
+      if (seriesDoc.exists) {
+        seriesData = seriesDoc.data();
+        gameNumber = (seriesData.games || []).length + 1;
+      }
+    }
+    
     const matchData = {
       tournamentId,
+      seriesId: seriesId || null,
+      gameNumber,
       matchTitle,
       hunterPlayer,
+      hunterTeam: hunterTeam || null,
       survivorPlayers: survivorPlayers.split(',').map(p => p.trim()).filter(p => p),
       eliminatedCount: parseInt(eliminatedCount),
       escapedCount: parseInt(escapedCount),
       hunterPoints,
       survivorPoints,
+      gameWinner,
       bonusApplied: enableBonusScoring && parseInt(eliminatedCount) === 4,
       notes: notes || '',
       createdBy: req.user.discordId,
       createdAt: new Date()
     };
     
-    await db.collection('matchResults').add(matchData);
+    const matchRef = await db.collection('matchResults').add(matchData);
+    
+    // If this is part of a series, update the series with the game result
+    if (seriesId && seriesData) {
+      const updatedGames = [...(seriesData.games || []), {
+        gameNumber,
+        matchId: matchRef.id,
+        winner: gameWinner,
+        hunterPoints,
+        survivorPoints
+      }];
+      
+      // Calculate series winner based on BO3/BO5 rules
+      const { seriesWinner, seriesComplete } = calculateSeriesWinner(seriesData.seriesType, updatedGames);
+      
+      await db.collection('series').doc(seriesId).update({
+        games: updatedGames,
+        winner: seriesWinner,
+        status: seriesComplete ? 'completed' : 'ongoing',
+        updatedAt: new Date()
+      });
+    }
     
     res.redirect('/admin/match-results?success=added');
   } catch (error) {
@@ -293,6 +438,40 @@ router.post('/match-results', requireAdmin, async (req, res) => {
     res.status(500).render('error', { message: 'Failed to add match result', user: req.user });
   }
 });
+
+// Helper function to calculate series winner
+function calculateSeriesWinner(seriesType, games) {
+  const team1Wins = games.filter(game => game.winner === 'team1').length;
+  const team2Wins = games.filter(game => game.winner === 'team2').length;
+  
+  let requiredWins, maxGames;
+  if (seriesType === 'BO3') {
+    requiredWins = 2;
+    maxGames = 3;
+  } else if (seriesType === 'BO5') {
+    requiredWins = 3;
+    maxGames = 5;
+  } else {
+    return { seriesWinner: null, seriesComplete: false };
+  }
+  
+  // Check if someone has won
+  if (team1Wins >= requiredWins) {
+    return { seriesWinner: 'team1', seriesComplete: true };
+  }
+  if (team2Wins >= requiredWins) {
+    return { seriesWinner: 'team2', seriesComplete: true };
+  }
+  
+  // Check if series is complete (all games played)
+  if (games.length >= maxGames) {
+    // This shouldn't happen with proper BO3/BO5 logic, but handle it
+    const winner = team1Wins > team2Wins ? 'team1' : 'team2';
+    return { seriesWinner: winner, seriesComplete: true };
+  }
+  
+  return { seriesWinner: null, seriesComplete: false };
+}
 
 router.post('/settings', requireAdmin, async (req, res) => {
   try {

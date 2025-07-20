@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シリーズ管理 - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <a href="/admin" class="active">管理画面</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>🏆 シリーズ管理 (BO3/BO5)</h2>
+            <p>Best of 3 または Best of 5 シリーズを管理します</p>
+        </div>
+
+        <div class="series-content">
+            <!-- Add Series Form -->
+            <div class="add-series-section card">
+                <h3>➕ 新しいシリーズを作成</h3>
+                <form action="/admin/series" method="POST" class="series-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentId">大会選択</label>
+                            <select id="tournamentId" name="tournamentId" required>
+                                <option value="">大会を選択してください</option>
+                                <% tournaments.forEach(tournament => { %>
+                                    <option value="<%= tournament.id %>"><%= tournament.title %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="seriesTitle">シリーズ名</label>
+                            <input type="text" id="seriesTitle" name="seriesTitle" required 
+                                   placeholder="例: 準決勝 チームA vs チームB">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="seriesType">シリーズ形式</label>
+                            <select id="seriesType" name="seriesType" required>
+                                <option value="">形式を選択してください</option>
+                                <option value="BO3">BO3 (Best of 3)</option>
+                                <option value="BO5">BO5 (Best of 5)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="team1Name">チーム1</label>
+                            <input type="text" id="team1Name" name="team1Name" required 
+                                   placeholder="チーム1の名前">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="team2Name">チーム2</label>
+                            <input type="text" id="team2Name" name="team2Name" required 
+                                   placeholder="チーム2の名前">
+                        </div>
+                        <div class="form-group">
+                            <label for="notes">メモ・備考</label>
+                            <textarea id="notes" name="notes" rows="2" 
+                                      placeholder="シリーズに関する追加情報"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">🎯 シリーズを作成</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Series List -->
+            <div class="series-list-section card">
+                <h3>📋 シリーズ一覧</h3>
+                <% if (series.length === 0) { %>
+                    <div class="no-series">
+                        <p>まだシリーズが作成されていません。</p>
+                    </div>
+                <% } else { %>
+                    <div class="series-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>シリーズ名</th>
+                                    <th>形式</th>
+                                    <th>対戦カード</th>
+                                    <th>状態</th>
+                                    <th>勝者</th>
+                                    <th>作成日</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% series.forEach(s => { %>
+                                    <tr class="series-row <%= s.status %>">
+                                        <td>
+                                            <strong><%= s.seriesTitle %></strong>
+                                        </td>
+                                        <td>
+                                            <span class="series-type <%= s.seriesType.toLowerCase() %>">
+                                                <%= s.seriesType %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="matchup">
+                                                <%= s.team1Name %> vs <%= s.team2Name %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge <%= s.status %>">
+                                                <%= s.status === 'ongoing' ? '進行中' : '完了' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% if (s.winner) { %>
+                                                <span class="winner">
+                                                    <%= s.winner === 'team1' ? s.team1Name : s.team2Name %>
+                                                </span>
+                                            <% } else { %>
+                                                <span class="no-winner">-</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <%= s.createdAt?.toDate ? s.createdAt.toDate().toLocaleDateString('ja-JP') : '不明' %>
+                                        </td>
+                                        <td>
+                                            <a href="/admin/series/<%= s.id %>" class="btn btn-small btn-info">詳細</a>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <% if (typeof query !== 'undefined' && query.success) { %>
+            <div class="success-message">
+                ✅ シリーズが正常に作成されました！
+            </div>
+        <% } %>
+    </main>
+
+    <style>
+        .series-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .add-series-section,
+        .series-list-section {
+            padding: 2rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .series-table {
+            overflow-x: auto;
+        }
+
+        .series-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .series-table th,
+        .series-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .series-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .series-type {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .series-type.bo3 {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .series-type.bo5 {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .status-badge.ongoing {
+            background: var(--warning-color);
+            color: var(--background-dark);
+        }
+
+        .status-badge.completed {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .matchup {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .winner {
+            font-weight: 700;
+            color: var(--success-color);
+        }
+
+        .no-winner {
+            color: var(--text-secondary);
+        }
+
+        .no-series {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-info {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: var(--secondary-dark);
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+</html>

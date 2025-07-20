@@ -42,9 +42,32 @@
                             </select>
                         </div>
                         <div class="form-group">
+                            <label for="seriesId">シリーズ選択（オプション）</label>
+                            <select id="seriesId" name="seriesId">
+                                <option value="">個別試合（シリーズなし）</option>
+                                <% activeSeries.forEach(series => { %>
+                                    <option value="<%= series.id %>">
+                                        <%= series.seriesTitle %> (<%= series.seriesType %>) - 
+                                        <%= series.team1Name %> vs <%= series.team2Name %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="matchTitle">試合名</label>
                             <input type="text" id="matchTitle" name="matchTitle" required 
-                                   placeholder="例: 準決勝第1戦">
+                                   placeholder="例: 準決勝第1戦 または ゲーム1">
+                        </div>
+                        <div class="form-group">
+                            <label for="hunterTeam">ハンターのチーム（シリーズの場合）</label>
+                            <select id="hunterTeam" name="hunterTeam">
+                                <option value="">選択してください</option>
+                                <option value="team1">チーム1</option>
+                                <option value="team2">チーム2</option>
+                            </select>
                         </div>
                     </div>
 
@@ -110,6 +133,7 @@
                             <thead>
                                 <tr>
                                     <th>試合名</th>
+                                    <th>シリーズ</th>
                                     <th>ハンター</th>
                                     <th>結果</th>
                                     <th>ポイント</th>
@@ -125,8 +149,25 @@
                                             <% if (result.bonusApplied) { %>
                                                 <span class="bonus-badge">ボーナス</span>
                                             <% } %>
+                                            <% if (result.gameNumber) { %>
+                                                <div class="game-info">ゲーム <%= result.gameNumber %></div>
+                                            <% } %>
                                         </td>
-                                        <td><%= result.hunterPlayer %></td>
+                                        <td>
+                                            <% if (result.seriesId) { %>
+                                                <span class="series-link">
+                                                    <a href="/admin/series/<%= result.seriesId %>">シリーズ詳細</a>
+                                                </span>
+                                            <% } else { %>
+                                                <span class="no-series">個別試合</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <%= result.hunterPlayer %>
+                                            <% if (result.hunterTeam) { %>
+                                                <div class="team-info">(<%= result.hunterTeam === 'team1' ? 'チーム1' : 'チーム2' %>)</div>
+                                            <% } %>
+                                        </td>
                                         <td>
                                             <span class="result-score">
                                                 <%= result.eliminatedCount %>吊り : <%= result.escapedCount %>逃げ
@@ -253,6 +294,33 @@
 
         .btn-info:hover {
             background: var(--secondary-dark);
+        }
+
+        .game-info {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .team-info {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .series-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .series-link a:hover {
+            text-decoration: underline;
+        }
+
+        .no-series {
+            color: var(--text-secondary);
+            font-style: italic;
         }
 
         @media (max-width: 768px) {
