@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大会作成 - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <a href="/admin">管理画面</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="form-header">
+            <h2>🏆 新規大会作成</h2>
+            <p>新しい大会を作成します</p>
+        </div>
+
+        <form action="/admin/tournaments/create" method="POST" class="tournament-form">
+            <div class="form-section">
+                <h3>基本情報</h3>
+                
+                <div class="form-group">
+                    <label for="title">大会名 *</label>
+                    <input type="text" id="title" name="title" required 
+                           placeholder="例: 第1回新人杯">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">大会説明 *</label>
+                    <textarea id="description" name="description" required rows="4"
+                              placeholder="大会の概要、参加条件、注意事項などを記載してください"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="maxEntries">最大参加者数 *</label>
+                        <input type="number" id="maxEntries" name="maxEntries" required 
+                               min="4" max="100" value="20">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="teamSize">チームサイズ *</label>
+                        <select id="teamSize" name="teamSize" required>
+                            <option value="4">4人</option>
+                            <option value="5" selected>5人</option>
+                            <option value="6">6人</option>
+                            <option value="7">7人</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="entryDeadline">エントリー締切 *</label>
+                    <input type="datetime-local" id="entryDeadline" name="entryDeadline" required>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>ルール設定</h3>
+                
+                <div class="form-group">
+                    <label for="rules">基本ルール</label>
+                    <textarea id="rules" name="rules" rows="6"
+                              placeholder="大会で適用される基本的なルールを記載してください">## 基本ルール
+- ランクマッチルールに準拠
+- 試合時間: 最大15分
+- 通常の第五人格ルールに従う
+
+## 禁止事項
+- 暴言・煽り行為
+- 故意の回線切断
+- 外部ツールの使用</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="banPickRules">BANピックルール</label>
+                    <textarea id="banPickRules" name="banPickRules" rows="6"
+                              placeholder="BANピックのルールを記載してください">## BANピックルール
+1. ハンター側がサバイバー1名をBAN
+2. サバイバー側がハンター1名をBAN
+3. ハンター側がハンターをピック
+4. サバイバー側が4名をピック
+
+## BANピック時間
+- 各BANフェーズ: 30秒
+- 各ピックフェーズ: 60秒</textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="/admin/tournaments" class="btn btn-secondary">キャンセル</a>
+                <button type="submit" class="btn btn-primary">大会を作成</button>
+            </div>
+        </form>
+    </main>
+
+    <style>
+        .form-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .form-header h2 {
+            color: #f39c12;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tournament-form {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-section h3 {
+            color: #f39c12;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #f39c12;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group select option {
+            background: #1a1a2e;
+            color: #ffffff;
+        }
+
+        .form-actions {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        // Set default entry deadline to 1 week from now
+        document.addEventListener('DOMContentLoaded', function() {
+            const deadlineInput = document.getElementById('entryDeadline');
+            const now = new Date();
+            now.setDate(now.getDate() + 7); // 1 week from now
+            now.setHours(23, 59, 0, 0); // End of day
+            
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            deadlineInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        });
+    </script>
+</body>
+</html>

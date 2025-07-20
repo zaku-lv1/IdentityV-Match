@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第五人格大会管理システム</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <% if (user) { %>
+                    <a href="/tournaments">大会一覧</a>
+                    <% if (user.isAdmin) { %>
+                        <a href="/admin">管理画面</a>
+                    <% } %>
+                    <a href="/auth/profile">プロフィール</a>
+                    <a href="/auth/logout">ログアウト</a>
+                <% } else { %>
+                    <a href="/auth/discord">Discordでログイン</a>
+                <% } %>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h2>第五人格大会管理システム</h2>
+            <p>Discordと連携した大会エントリー・管理システム</p>
+            
+            <% if (!user) { %>
+                <a href="/auth/discord" class="btn btn-primary">
+                    <span>🎮</span>
+                    Discordでログインして始める
+                </a>
+            <% } else { %>
+                <div class="user-info">
+                    <h3>ようこそ、<%= user.username %>さん！</h3>
+                    <div class="rank-info">
+                        <div class="rank-card">
+                            <span class="rank-icon">🏹</span>
+                            <div class="rank-details">
+                                <span class="rank-label">ハンター段位</span>
+                                <span class="rank-value"><%= user.hunterRank ? getRankDisplay(user.hunterRank) : '未設定' %></span>
+                            </div>
+                        </div>
+                        <div class="rank-card">
+                            <span class="rank-icon">🏃</span>
+                            <div class="rank-details">
+                                <span class="rank-label">サバイバー段位</span>
+                                <span class="rank-value"><%= user.survivorRank ? getRankDisplay(user.survivorRank) : '未設定' %></span>
+                            </div>
+                        </div>
+                    </div>
+                    <% if (!user.hunterRank || !user.survivorRank) { %>
+                        <a href="/auth/profile" class="btn btn-secondary">段位を設定する</a>
+                    <% } %>
+                    <% if (user.isAdmin) { %>
+                        <div class="admin-badge">
+                            <span>👑 管理者</span>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
+        </section>
+
+        <section class="tournaments">
+            <h3>🏆 開催中の大会</h3>
+            <div class="tournaments-grid">
+                <% if (tournaments && tournaments.length > 0) { %>
+                    <% tournaments.forEach(tournament => { %>
+                        <div class="tournament-card">
+                            <div class="tournament-status">
+                                <span class="status-badge status-<%= tournament.status %>">
+                                    <%= tournament.status === 'open' ? '募集中' : 
+                                        tournament.status === 'closed' ? '締切' : 
+                                        tournament.status === 'ongoing' ? '開催中' : 
+                                        tournament.status === 'finished' ? '終了' : tournament.status %>
+                                </span>
+                            </div>
+                            <h4><%= tournament.title %></h4>
+                            <p class="tournament-description"><%= tournament.description %></p>
+                            <div class="tournament-details">
+                                <div class="detail-item">
+                                    <span class="detail-icon">👥</span>
+                                    <span>最大参加者: <%= tournament.maxEntries %>人</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-icon">🎯</span>
+                                    <span>チームサイズ: <%= tournament.teamSize %>人</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-icon">📅</span>
+                                    <span>締切: <%= formatDate(tournament.entryDeadline) %></span>
+                                </div>
+                            </div>
+                            <div class="tournament-actions">
+                                <a href="/tournaments/<%= tournament.id %>" class="btn btn-primary">詳細を見る</a>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="no-tournaments">
+                        <div class="empty-state">
+                            <h3>📋 大会がありません</h3>
+                            <p>現在開催中・開催予定の大会はありません。</p>
+                            <% if (user && user.isAdmin) { %>
+                                <a href="/admin/tournaments/create" class="btn btn-primary">大会を作成する</a>
+                            <% } else { %>
+                                <p>新しい大会の開催をお待ちください！</p>
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+            
+            <% if (tournaments && tournaments.length > 0) { %>
+                <div class="view-all">
+                    <a href="/tournaments" class="btn btn-outline">すべての大会を見る</a>
+                </div>
+            <% } %>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Identity V Tournament System</p>
+    </footer>
+
+    <% 
+    function formatDate(date) {
+        if (!date) return '未設定';
+        let d;
+        if (date.seconds) {
+            d = new Date(date.seconds * 1000);
+        } else {
+            d = new Date(date);
+        }
+        return d.toLocaleDateString('ja-JP', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function getRankDisplay(rank) {
+        if (rank === 8) return '最高峰';
+        return rank + '段';
+    }
+    %>
+</body>
+</html>

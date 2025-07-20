@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= tournament.title %> - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <% if (user) { %>
+                    <% if (user.isAdmin) { %>
+                        <a href="/admin">管理画面</a>
+                    <% } %>
+                    <a href="/auth/profile">プロフィール</a>
+                    <a href="/auth/logout">ログアウト</a>
+                <% } else { %>
+                    <a href="/auth/discord">ログイン</a>
+                <% } %>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="tournament-header">
+            <div class="tournament-title-section">
+                <h1><%= tournament.title %></h1>
+                <div class="tournament-status">
+                    <span class="status-badge status-<%= tournament.status %>">
+                        <%= tournament.status === 'open' ? '募集中' : 
+                            tournament.status === 'closed' ? '締切' : 
+                            tournament.status === 'ongoing' ? '開催中' : 
+                            tournament.status === 'finished' ? '終了' : tournament.status %>
+                    </span>
+                </div>
+            </div>
+            <p class="tournament-description"><%= tournament.description %></p>
+        </div>
+
+        <div class="tournament-content">
+            <div class="tournament-info">
+                <div class="info-card">
+                    <h3>📋 大会情報</h3>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">最大参加者数</span>
+                            <span class="info-value"><%= tournament.maxEntries %>人</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">チームサイズ</span>
+                            <span class="info-value"><%= tournament.teamSize %>人</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">エントリー締切</span>
+                            <span class="info-value"><%= formatDate(tournament.entryDeadline) %></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">現在のエントリー数</span>
+                            <span class="info-value"><%= entries.length %>人</span>
+                        </div>
+                    </div>
+                </div>
+
+                <% if (tournament.rules) { %>
+                <div class="info-card">
+                    <h3>📜 基本ルール</h3>
+                    <div class="rules-content">
+                        <%- tournament.rules.replace(/\n/g, '<br>') %>
+                    </div>
+                </div>
+                <% } %>
+
+                <% if (tournament.banPickRules) { %>
+                <div class="info-card">
+                    <h3>🎯 BANピックルール</h3>
+                    <div class="rules-content">
+                        <%- tournament.banPickRules.replace(/\n/g, '<br>') %>
+                    </div>
+                </div>
+                <% } %>
+            </div>
+
+            <div class="entry-section">
+                <% if (user) { %>
+                    <div class="entry-card">
+                        <h3>🎮 エントリー</h3>
+                        <% if (userEntry) { %>
+                            <div class="entry-status">
+                                <p class="success-message">✅ エントリー済み</p>
+                                <p>あなたは既にこの大会にエントリーしています。</p>
+                                <button onclick="cancelEntry()" class="btn btn-danger">エントリーをキャンセル</button>
+                            </div>
+                        <% } else { %>
+                            <% if (tournament.status === 'open') { %>
+                                <% if (user.hunterRank && user.survivorRank) { %>
+                                    <div class="entry-form">
+                                        <p>この大会にエントリーしますか？</p>
+                                        <div class="user-ranks">
+                                            <span>🏹 ハンター: <%= user.hunterRank %>段</span>
+                                            <span>🏃 サバイバー: <%= user.survivorRank %>段</span>
+                                        </div>
+                                        <button onclick="enterTournament()" class="btn btn-primary">エントリーする</button>
+                                    </div>
+                                <% } else { %>
+                                    <div class="entry-disabled">
+                                        <p>⚠️ エントリーするには段位設定が必要です</p>
+                                        <a href="/auth/profile" class="btn btn-secondary">段位を設定する</a>
+                                    </div>
+                                <% } %>
+                            <% } else { %>
+                                <div class="entry-disabled">
+                                    <p>この大会はエントリーを受け付けていません</p>
+                                </div>
+                            <% } %>
+                        <% } %>
+                    </div>
+                <% } else { %>
+                    <div class="entry-card">
+                        <h3>🎮 エントリー</h3>
+                        <div class="entry-disabled">
+                            <p>エントリーするにはログインが必要です</p>
+                            <a href="/auth/discord" class="btn btn-primary">Discordでログイン</a>
+                        </div>
+                    </div>
+                <% } %>
+
+                <div class="participants-card">
+                    <h3>👥 参加者一覧 (<%= entries.length %>人)</h3>
+                    <% if (entries.length > 0) { %>
+                        <div class="participants-list">
+                            <% entries.forEach(entry => { %>
+                                <div class="participant-item">
+                                    <span class="participant-name"><%= entry.username %></span>
+                                    <div class="participant-ranks">
+                                        <span class="rank-badge hunter">H: <%= entry.hunterRank %>段</span>
+                                        <span class="rank-badge survivor">S: <%= entry.survivorRank %>段</span>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    <% } else { %>
+                        <p class="no-participants">まだ参加者がいません</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <div class="back-section">
+            <a href="/tournaments" class="btn btn-outline">大会一覧に戻る</a>
+        </div>
+    </main>
+
+    <style>
+        .tournament-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .tournament-title-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .tournament-header h1 {
+            color: #f39c12;
+            font-size: 2.5rem;
+        }
+
+        .tournament-description {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .tournament-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .info-card, .entry-card, .participants-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+        }
+
+        .info-card h3, .entry-card h3, .participants-card h3 {
+            color: #f39c12;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+        }
+
+        .info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-label {
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        .info-value {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .rules-content {
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .status-open { background: linear-gradient(45deg, #27ae60, #2ecc71); }
+        .status-closed { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        .status-ongoing { background: linear-gradient(45deg, #f39c12, #e67e22); }
+        .status-finished { background: linear-gradient(45deg, #7f8c8d, #95a5a6); }
+
+        .success-message {
+            color: #2ecc71;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .user-ranks {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+            justify-content: center;
+        }
+
+        .participants-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .participant-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .participant-ranks {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .rank-badge {
+            padding: 0.3rem 0.6rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .rank-badge.hunter {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .rank-badge.survivor {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .no-participants {
+            text-align: center;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        .back-section {
+            text-align: center;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .tournament-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .tournament-title-section {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+
+    <script>
+        async function enterTournament() {
+            try {
+                const response = await fetch(`/tournaments/<%= tournament.id %>/enter`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('エントリーが完了しました！');
+                    location.reload();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('エントリー中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+
+        async function cancelEntry() {
+            if (!confirm('本当にエントリーをキャンセルしますか？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/tournaments/<%= tournament.id %>/enter`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('エントリーをキャンセルしました');
+                    location.reload();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('キャンセル中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+    </script>
+
+    <% 
+    function formatDate(date) {
+        if (!date) return '未設定';
+        let d;
+        if (date.seconds) {
+            d = new Date(date.seconds * 1000);
+        } else {
+            d = new Date(date);
+        }
+        return d.toLocaleDateString('ja-JP', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    %>
+</body>
+</html>

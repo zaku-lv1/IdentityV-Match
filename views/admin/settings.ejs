@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>システム設定 - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <a href="/admin" class="active">管理画面</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="settings-header">
+            <h2>⚙️ システム設定</h2>
+            <p>管理者権限とサーバー設定を管理します</p>
+        </div>
+
+        <form action="/admin/settings" method="POST" class="settings-form">
+            <div class="settings-section">
+                <h3>Discord サーバー設定</h3>
+                <div class="form-group">
+                    <label for="allowedGuildId">許可するDiscordサーバーID</label>
+                    <input type="text" id="allowedGuildId" name="allowedGuildId" 
+                           value="<%= settings.allowedGuildId || '' %>"
+                           placeholder="例: 123456789012345678">
+                    <small>このサーバーのメンバーのみエントリー可能になります（空欄で全サーバー許可）</small>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>管理者設定</h3>
+                <div class="form-group">
+                    <label for="adminUserIds">管理者のDiscord ID（カンマ区切り）</label>
+                    <textarea id="adminUserIds" name="adminUserIds" rows="3"
+                              placeholder="例: 123456789012345678, 987654321098765432"><%= (settings.adminUserIds || []).join(', ') %></textarea>
+                    <small>ここに記載されたDiscord IDのユーザーが管理者権限を持ちます</small>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">設定を保存</button>
+                <a href="/admin" class="btn btn-secondary">戻る</a>
+            </div>
+        </form>
+
+        <div class="help-section">
+            <h3>💡 設定方法</h3>
+            <div class="help-cards">
+                <div class="help-card">
+                    <h4>Discord サーバーIDの取得方法</h4>
+                    <ol>
+                        <li>Discordで開発者モードを有効にする</li>
+                        <li>サーバー名を右クリック</li>
+                        <li>「IDをコピー」を選択</li>
+                    </ol>
+                </div>
+                <div class="help-card">
+                    <h4>Discord ユーザーIDの取得方法</h4>
+                    <ol>
+                        <li>Discordで開発者モードを有効にする</li>
+                        <li>ユーザー名を右クリック</li>
+                        <li>「IDをコピー」を選択</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

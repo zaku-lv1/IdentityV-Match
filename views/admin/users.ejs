@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー管理 - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <a href="/admin" class="active">管理画面</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="users-header">
+            <h2>👥 ユーザー管理</h2>
+            <p>登録されているユーザーの確認と管理を行います</p>
+        </div>
+
+        <div class="users-stats">
+            <div class="stat-card">
+                <span class="stat-number"><%= users ? users.length : 0 %></span>
+                <span class="stat-label">総登録ユーザー数</span>
+            </div>
+        </div>
+
+        <div class="users-table">
+            <% if (users && users.length > 0) { %>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ユーザー名</th>
+                            <th>Discord ID</th>
+                            <th>ハンター段位</th>
+                            <th>サバイバー段位</th>
+                            <th>最終ログイン</th>
+                            <th>登録日</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach(user => { %>
+                            <tr>
+                                <td>
+                                    <div class="user-info">
+                                        <span class="username"><%= user.username %></span>
+                                        <% if (user.discriminator) { %>
+                                            <span class="discriminator">#<%= user.discriminator %></span>
+                                        <% } %>
+                                    </div>
+                                </td>
+                                <td><code><%= user.discordId %></code></td>
+                                <td>
+                                    <% if (user.hunterRank) { %>
+                                        <span class="rank-badge hunter"><%= user.hunterRank %>段</span>
+                                    <% } else { %>
+                                        <span class="no-rank">未設定</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (user.survivorRank) { %>
+                                        <span class="rank-badge survivor"><%= user.survivorRank %>段</span>
+                                    <% } else { %>
+                                        <span class="no-rank">未設定</span>
+                                    <% } %>
+                                </td>
+                                <td><%= formatDate(user.lastLogin) %></td>
+                                <td><%= formatDate(user.createdAt) %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            <% } else { %>
+                <div class="empty-state">
+                    <h3>ユーザーがいません</h3>
+                    <p>まだ登録されているユーザーがいません。</p>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <% 
+    function formatDate(date) {
+        if (!date) return '未設定';
+        let d;
+        if (date.seconds) {
+            d = new Date(date.seconds * 1000);
+        } else {
+            d = new Date(date);
+        }
+        return d.toLocaleDateString('ja-JP', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    %>
+</body>
+</html>

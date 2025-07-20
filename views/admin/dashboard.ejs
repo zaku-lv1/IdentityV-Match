@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理ダッシュボード - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/modern-style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <a href="/admin" class="active">管理画面</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="admin-header">
+            <h2>👑 管理ダッシュボード</h2>
+            <p>システム全体の管理を行います</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number"><%= stats.totalTournaments %></span>
+                <span class="stat-label">総大会数</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number"><%= stats.totalEntries %></span>
+                <span class="stat-label">総エントリー数</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number"><%= stats.totalUsers %></span>
+                <span class="stat-label">登録ユーザー数</span>
+            </div>
+        </div>
+
+        <div class="admin-grid">
+            <div class="card">
+                <h3>🏆 大会管理</h3>
+                <p>大会の作成・編集・管理を行います</p>
+                <div class="card-actions">
+                    <a href="/admin/tournaments" class="btn btn-primary">大会一覧</a>
+                    <a href="/admin/tournaments/create" class="btn btn-secondary">新規作成</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>👥 ユーザー管理</h3>
+                <p>登録ユーザーの確認・管理</p>
+                <div class="card-actions">
+                    <a href="/admin/users" class="btn btn-primary">ユーザー一覧</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⚙️ システム設定</h3>
+                <p>管理者権限とサーバー設定の管理</p>
+                <div class="card-actions">
+                    <a href="/admin/settings" class="btn btn-primary">設定</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .admin-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .admin-header h2 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .card-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+    </style>
+</body>
+</html>

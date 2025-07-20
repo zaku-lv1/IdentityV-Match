@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大会一覧 - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments" class="active">大会一覧</a>
+                <% if (user) { %>
+                    <% if (user.isAdmin) { %>
+                        <a href="/admin">管理画面</a>
+                    <% } %>
+                    <a href="/auth/profile">プロフィール</a>
+                    <a href="/auth/logout">ログアウト</a>
+                <% } else { %>
+                    <a href="/auth/discord">ログイン</a>
+                <% } %>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="tournaments-header">
+            <h2>🏆 大会一覧</h2>
+            <p>開催中・開催予定の大会をチェックしよう！</p>
+            <% if (user && user.isAdmin) { %>
+                <div class="admin-actions">
+                    <a href="/admin/tournaments/create" class="btn btn-primary">新規大会作成</a>
+                </div>
+            <% } %>
+        </section>
+
+        <section class="tournaments-content">
+            <% if (tournaments && tournaments.length > 0) { %>
+                <div class="tournaments-grid">
+                    <% tournaments.forEach(tournament => { %>
+                        <div class="tournament-card">
+                            <div class="tournament-status">
+                                <span class="status-badge status-<%= tournament.status %>">
+                                    <%= tournament.status === 'open' ? '募集中' : 
+                                        tournament.status === 'closed' ? '締切' : 
+                                        tournament.status === 'ongoing' ? '開催中' : 
+                                        tournament.status === 'finished' ? '終了' : tournament.status %>
+                                </span>
+                            </div>
+                            
+                            <h3><%= tournament.title %></h3>
+                            <p class="tournament-description"><%= tournament.description %></p>
+                            
+                            <div class="tournament-details">
+                                <div class="detail-item">
+                                    <span class="detail-icon">👥</span>
+                                    <span>最大参加者: <%= tournament.maxEntries %>人</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-icon">🎯</span>
+                                    <span>チームサイズ: <%= tournament.teamSize %>人</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-icon">📅</span>
+                                    <span>締切: <%= formatDate(tournament.entryDeadline) %></span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-icon">📝</span>
+                                    <span>作成日: <%= formatDate(tournament.createdAt) %></span>
+                                </div>
+                            </div>
+                            
+                            <div class="tournament-actions">
+                                <a href="/tournaments/<%= tournament.id %>" class="btn btn-primary">詳細を見る</a>
+                                <% if (user && user.isAdmin) { %>
+                                    <a href="/admin/tournaments/<%= tournament.id %>" class="btn btn-secondary">管理</a>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } else { %>
+                <div class="no-tournaments">
+                    <div class="empty-state">
+                        <h3>📋 大会がありません</h3>
+                        <p>現在開催中・開催予定の大会はありません。</p>
+                        <% if (user && user.isAdmin) { %>
+                            <a href="/admin/tournaments/create" class="btn btn-primary">大会を作成する</a>
+                        <% } else { %>
+                            <p>新しい大会の開催をお待ちください！</p>
+                        <% } %>
+                    </div>
+                </div>
+            <% } %>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Identity V Tournament System</p>
+    </footer>
+
+    <style>
+        .tournaments-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .tournaments-header h2 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .admin-actions {
+            margin-top: 2rem;
+        }
+    </style>
+
+    <% 
+    function formatDate(date) {
+        if (!date) return '未設定';
+        let d;
+        if (date.seconds) {
+            // Firestore Timestamp
+            d = new Date(date.seconds * 1000);
+        } else {
+            d = new Date(date);
+        }
+        return d.toLocaleDateString('ja-JP', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    %>
+</body>
+</html>

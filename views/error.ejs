@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>エラー - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <% if (user) { %>
+                    <a href="/tournaments">大会一覧</a>
+                    <% if (user.isAdmin) { %>
+                        <a href="/admin">管理画面</a>
+                    <% } %>
+                    <a href="/auth/profile">プロフィール</a>
+                    <a href="/auth/logout">ログアウト</a>
+                <% } else { %>
+                    <a href="/auth/discord">ログイン</a>
+                <% } %>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="error-section">
+            <div class="empty-state">
+                <h2>⚠️ エラーが発生しました</h2>
+                <p><%= message %></p>
+                <div class="error-actions">
+                    <a href="/" class="btn btn-primary">ホームに戻る</a>
+                    <a href="javascript:history.back()" class="btn btn-secondary">前のページに戻る</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <style>
+        .error-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+        }
+
+        .error-section h2 {
+            color: var(--error-color);
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+
+        .error-section p {
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</body>
+</html>

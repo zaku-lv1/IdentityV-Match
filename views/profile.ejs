@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロフィール設定 - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <% if (user.isAdmin) { %>
+                    <a href="/admin">管理画面</a>
+                <% } %>
+                <a href="/auth/profile" class="active">プロフィール</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="profile-header">
+            <h2>👤 プロフィール設定</h2>
+            <p>あなたの段位情報を設定してください</p>
+        </div>
+
+        <div class="profile-content">
+            <div class="profile-info card">
+                <h3>📋 現在の情報</h3>
+                <div class="current-info">
+                    <div class="info-item">
+                        <span class="info-label">Discord ユーザー名</span>
+                        <span class="info-value"><%= user.username %><% if (user.discriminator) { %>#<%= user.discriminator %><% } %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">現在のハンター段位</span>
+                        <span class="info-value">
+                            <% if (user.hunterRank) { %>
+                                <%= getRankDisplay(user.hunterRank) %>
+                            <% } else { %>
+                                <span class="no-rank">未設定</span>
+                            <% } %>
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">現在のサバイバー段位</span>
+                        <span class="info-value">
+                            <% if (user.survivorRank) { %>
+                                <%= getRankDisplay(user.survivorRank) %>
+                            <% } else { %>
+                                <span class="no-rank">未設定</span>
+                            <% } %>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-form card">
+                <h3>⚙️ 段位設定</h3>
+                <form action="/auth/profile" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hunterRank">🏹 ハンター最高段位</label>
+                            <select id="hunterRank" name="hunterRank" required>
+                                <option value="">選択してください</option>
+                                <option value="1" <%= user.hunterRank === 1 ? 'selected' : '' %>>1段</option>
+                                <option value="2" <%= user.hunterRank === 2 ? 'selected' : '' %>>2段</option>
+                                <option value="3" <%= user.hunterRank === 3 ? 'selected' : '' %>>3段</option>
+                                <option value="4" <%= user.hunterRank === 4 ? 'selected' : '' %>>4段</option>
+                                <option value="5" <%= user.hunterRank === 5 ? 'selected' : '' %>>5段</option>
+                                <option value="6" <%= user.hunterRank === 6 ? 'selected' : '' %>>6段</option>
+                                <option value="7" <%= user.hunterRank === 7 ? 'selected' : '' %>>7段</option>
+                                <option value="8" <%= user.hunterRank === 8 ? 'selected' : '' %>>最高峰</option>
+                            </select>
+                            <small>あなたが到達した最高のハンター段位を選択してください</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="survivorRank">🏃 サバイバー最高段位</label>
+                            <select id="survivorRank" name="survivorRank" required>
+                                <option value="">選択してください</option>
+                                <option value="1" <%= user.survivorRank === 1 ? 'selected' : '' %>>1段</option>
+                                <option value="2" <%= user.survivorRank === 2 ? 'selected' : '' %>>2段</option>
+                                <option value="3" <%= user.survivorRank === 3 ? 'selected' : '' %>>3段</option>
+                                <option value="4" <%= user.survivorRank === 4 ? 'selected' : '' %>>4段</option>
+                                <option value="5" <%= user.survivorRank === 5 ? 'selected' : '' %>>5段</option>
+                                <option value="6" <%= user.survivorRank === 6 ? 'selected' : '' %>>6段</option>
+                                <option value="7" <%= user.survivorRank === 7 ? 'selected' : '' %>>7段</option>
+                                <option value="8" <%= user.survivorRank === 8 ? 'selected' : '' %>>最高峰</option>
+                            </select>
+                            <small>あなたが到達した最高のサバイバー段位を選択してください</small>
+                        </div>
+                    </div>
+
+                    <div class="rank-explanation">
+                        <h4>💡 段位について</h4>
+                        <p>第五人格のランクマッチ段位システムに基づいています：</p>
+                        <ul>
+                            <li><strong>1段〜7段</strong>: 通常の段位システム</li>
+                            <li><strong>最高峰</strong>: 7段を超えた最高位の段位</li>
+                        </ul>
+                        <p class="note">※ 最高到達段位を正確に入力してください。大会の参加条件やチーム分けの参考になります。</p>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 保存</button>
+                        <a href="/" class="btn btn-secondary">戻る</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <% if (typeof query !== 'undefined' && query.success) { %>
+            <div class="success-message">
+                ✅ プロフィールが正常に更新されました！
+            </div>
+        <% } %>
+
+        <% if (typeof query !== 'undefined' && query.error) { %>
+            <div class="error-message">
+                ❌ エラーが発生しました。もう一度お試しください。
+            </div>
+        <% } %>
+    </main>
+
+    <style>
+        .profile-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .profile-header h2 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .profile-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .current-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .info-value {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .rank-explanation {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: rgba(0, 184, 148, 0.1);
+            border-radius: 12px;
+            border: 1px solid var(--primary-color);
+        }
+
+        .rank-explanation h4 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .rank-explanation ul {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .rank-explanation li {
+            margin: 0.5rem 0;
+            color: var(--text-secondary);
+        }
+
+        .note {
+            margin-top: 1rem;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .success-message,
+        .error-message {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: var(--shadow-medium);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .success-message {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .error-message {
+            background: var(--error-color);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .profile-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <% 
+    function getRankDisplay(rank) {
+        if (rank === 8) return '最高峰';
+        return rank + '段';
+    }
+    %>
+</body>
+</html>
