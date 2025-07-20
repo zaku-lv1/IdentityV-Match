@@ -5,6 +5,8 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const FirestoreStore = require('firestore-store')(session);
+const FileStore = require('session-file-store')(session);
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -45,14 +47,30 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session configuration
+// Session configuration with persistent store for maintaining login state across restarts
+const createSessionStore = () => {
+  // Always use file-based store for development and testing
+  // In production with proper Firebase setup, this can be switched to Firestore
+  console.log('Using file-based session store for development persistence');
+  return new FileStore({
+    path: path.join(__dirname, '../sessions'),
+    ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+    retries: 0,
+    factor: 1,
+    minTimeout: 50,
+    maxTimeout: 100
+  });
+};
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'development-secret-key',
   resave: false,
   saveUninitialized: false,
+  store: createSessionStore(),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    httpOnly: true, // Prevent XSS attacks
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days for better persistence
   }
 }));
 
