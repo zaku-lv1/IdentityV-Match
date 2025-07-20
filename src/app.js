@@ -156,7 +156,7 @@ if (process.env.NODE_ENV === 'development') {
   app.get('/dev/stats', async (req, res) => {
     try {
       const db = getDb();
-      const collections = ['users', 'tournaments', 'entries', 'teams', 'settings'];
+      const collections = ['users', 'tournaments', 'entries', 'teams', 'settings', 'series', 'matchResults'];
       const stats = {};
       
       for (const collectionName of collections) {
