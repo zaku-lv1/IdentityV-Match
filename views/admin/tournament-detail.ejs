@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= tournament.title %> - 管理画面 | Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/tournaments">大会一覧</a>
+                <a href="/admin" class="active">管理画面</a>
+                <a href="/auth/logout">ログアウト</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="admin-header">
+            <div class="tournament-title-section">
+                <h1>🏆 <%= tournament.title %> - 管理画面</h1>
+                <div class="tournament-status">
+                    <span class="status-badge status-<%= tournament.status %>">
+                        <%= tournament.status === 'open' ? '募集中' : 
+                            tournament.status === 'closed' ? '締切' : 
+                            tournament.status === 'ongoing' ? '開催中' : 
+                            tournament.status === 'finished' ? '終了' : tournament.status %>
+                    </span>
+                </div>
+            </div>
+            <div class="admin-actions">
+                <a href="/tournaments/<%= tournament.id %>" class="btn btn-outline">公開ページを表示</a>
+                <a href="/admin/tournaments" class="btn btn-secondary">大会一覧に戻る</a>
+            </div>
+        </div>
+
+        <div class="admin-content">
+            <!-- Tournament Info Section -->
+            <div class="info-section">
+                <div class="info-card">
+                    <h3>📋 大会情報</h3>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">最大参加者数</span>
+                            <span class="info-value"><%= tournament.maxEntries %>人</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">推奨チームサイズ</span>
+                            <span class="info-value"><%= tournament.teamSize %>人 (4-7人編成可能)</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">エントリー締切</span>
+                            <span class="info-value"><%= formatDate(tournament.entryDeadline) %></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">現在のエントリー数</span>
+                            <span class="info-value"><%= entries.length %>人</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">チーム数</span>
+                            <span class="info-value"><%= teams.length %>チーム</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Management -->
+                <div class="info-card">
+                    <h3>🎮 大会ステータス管理</h3>
+                    <div class="status-controls">
+                        <button onclick="updateStatus('open')" class="btn btn-success" 
+                                <%= tournament.status === 'open' ? 'disabled' : '' %>>
+                            募集開始
+                        </button>
+                        <button onclick="updateStatus('closed')" class="btn btn-warning"
+                                <%= tournament.status === 'closed' ? 'disabled' : '' %>>
+                            募集締切
+                        </button>
+                        <button onclick="updateStatus('ongoing')" class="btn btn-primary"
+                                <%= tournament.status === 'ongoing' ? 'disabled' : '' %>>
+                            大会開始
+                        </button>
+                        <button onclick="updateStatus('finished')" class="btn btn-secondary"
+                                <%= tournament.status === 'finished' ? 'disabled' : '' %>>
+                            大会終了
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Participants Management -->
+            <div class="participants-section">
+                <div class="participants-card">
+                    <h3>👥 参加者管理 (<%= entries.length %>人)</h3>
+                    <% if (entries.length > 0) { %>
+                        <div class="participants-controls">
+                            <button onclick="createRandomTeams()" class="btn btn-primary">
+                                ランダムチーム作成
+                            </button>
+                            <button onclick="clearAllTeams()" class="btn btn-danger">
+                                全チーム解散
+                            </button>
+                            <button onclick="exportParticipants()" class="btn btn-outline">
+                                参加者リストエクスポート
+                            </button>
+                        </div>
+                        
+                        <div class="participants-list">
+                            <% entries.forEach(entry => { %>
+                                <div class="participant-item" id="participant-<%= entry.id %>">
+                                    <div class="participant-info">
+                                        <span class="participant-name"><%= entry.username %></span>
+                                        <div class="participant-ranks">
+                                            <span class="rank-badge hunter">H: <%= entry.hunterRank %>段</span>
+                                            <span class="rank-badge survivor">S: <%= entry.survivorRank %>段</span>
+                                        </div>
+                                    </div>
+                                    <div class="participant-actions">
+                                        <button onclick="removeParticipant('<%= entry.id %>')" 
+                                                class="btn btn-sm btn-danger">削除</button>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    <% } else { %>
+                        <p class="no-participants">まだ参加者がいません</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Teams Management -->
+            <div class="teams-section">
+                <div class="teams-card">
+                    <h3>🎯 チーム管理 (<%= teams.length %>チーム)</h3>
+                    <div class="team-info-note">
+                        <p>💡 チーム編成は4〜7人で構成可能です。全てのチームが同じ人数である必要はありません。</p>
+                    </div>
+                    
+                    <% if (teams.length > 0) { %>
+                        <div class="teams-list">
+                            <% teams.forEach((team, index) => { %>
+                                <div class="team-item" id="team-<%= team.id %>">
+                                    <div class="team-header">
+                                        <h4>チーム <%= index + 1 %> (<%= team.members ? team.members.length : 0 %>人)</h4>
+                                        <div class="team-actions">
+                                            <button onclick="editTeam('<%= team.id %>')" class="btn btn-sm btn-primary">編集</button>
+                                            <button onclick="deleteTeam('<%= team.id %>')" class="btn btn-sm btn-danger">削除</button>
+                                        </div>
+                                    </div>
+                                    <% if (team.members && team.members.length > 0) { %>
+                                        <div class="team-members">
+                                            <% team.members.forEach(member => { %>
+                                                <div class="team-member">
+                                                    <span class="member-name"><%= member.username %></span>
+                                                    <div class="member-ranks">
+                                                        <span class="rank-badge hunter">H: <%= member.hunterRank %>段</span>
+                                                        <span class="rank-badge survivor">S: <%= member.survivorRank %>段</span>
+                                                    </div>
+                                                </div>
+                                            <% }) %>
+                                        </div>
+                                    <% } else { %>
+                                        <p class="no-members">メンバーが設定されていません</p>
+                                    <% } %>
+                                </div>
+                            <% }) %>
+                        </div>
+                    <% } else { %>
+                        <div class="no-teams">
+                            <p>まだチームが作成されていません</p>
+                            <% if (entries.length >= 4) { %>
+                                <button onclick="createRandomTeams()" class="btn btn-primary">
+                                    ランダムチーム作成
+                                </button>
+                            <% } else { %>
+                                <p class="note">チーム作成には最低4人の参加者が必要です</p>
+                            <% } %>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .admin-header {
+            margin-bottom: 3rem;
+        }
+
+        .tournament-title-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .tournament-title-section h1 {
+            color: #f39c12;
+            font-size: 2.2rem;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .admin-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .teams-section {
+            grid-column: 1 / -1;
+        }
+
+        .info-card, .participants-card, .teams-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+        }
+
+        .info-card h3, .participants-card h3, .teams-card h3 {
+            color: #f39c12;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+        }
+
+        .info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-label {
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        .info-value {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .status-open { background: linear-gradient(45deg, #27ae60, #2ecc71); }
+        .status-closed { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        .status-ongoing { background: linear-gradient(45deg, #f39c12, #e67e22); }
+        .status-finished { background: linear-gradient(45deg, #7f8c8d, #95a5a6); }
+
+        .status-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .participants-controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .participants-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .participant-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .participant-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .participant-ranks {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .rank-badge {
+            padding: 0.3rem 0.6rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .rank-badge.hunter {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .rank-badge.survivor {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .team-info-note {
+            background: rgba(52, 152, 219, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            border-left: 4px solid #3498db;
+        }
+
+        .team-info-note p {
+            margin: 0;
+            color: #3498db;
+        }
+
+        .teams-list {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .team-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 2px solid rgba(243, 156, 18, 0.3);
+        }
+
+        .team-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .team-header h4 {
+            color: #f39c12;
+            margin: 0;
+        }
+
+        .team-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .team-members {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .team-member {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .member-name {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .member-ranks {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .no-participants, .no-members, .no-teams {
+            text-align: center;
+            opacity: 0.6;
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        .no-teams .note {
+            color: #f39c12;
+            margin-top: 1rem;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .admin-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .tournament-title-section {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .admin-actions {
+                justify-content: center;
+            }
+
+            .status-controls, .participants-controls {
+                justify-content: center;
+            }
+
+            .team-members {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        async function updateStatus(newStatus) {
+            if (!confirm(`大会ステータスを「${getStatusText(newStatus)}」に変更しますか？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/tournaments/<%= tournament.id %>/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('ステータスを更新しました');
+                    location.reload();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('ステータス更新中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+
+        async function removeParticipant(participantId) {
+            if (!confirm('この参加者を削除しますか？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/tournaments/<%= tournament.id %>/participants/${participantId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('参加者を削除しました');
+                    location.reload();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('参加者削除中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+
+        async function createRandomTeams() {
+            if (!confirm('ランダムにチームを作成しますか？既存のチームは削除されます。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/tournaments/<%= tournament.id %>/teams/random`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`${result.teamsCreated}個のチームを作成しました`);
+                    location.reload();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('チーム作成中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+
+        async function clearAllTeams() {
+            if (!confirm('全てのチームを削除しますか？この操作は取り消せません。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/tournaments/<%= tournament.id %>/teams`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('全てのチームを削除しました');
+                    location.reload();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('チーム削除中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+
+        async function deleteTeam(teamId) {
+            if (!confirm('このチームを削除しますか？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/tournaments/<%= tournament.id %>/teams/${teamId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('チームを削除しました');
+                    location.reload();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('チーム削除中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+
+        function editTeam(teamId) {
+            // チーム編集機能は今後実装予定
+            alert('チーム編集機能は準備中です');
+        }
+
+        function exportParticipants() {
+            const participants = <%-JSON.stringify(entries)%>;
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "名前,ハンター段位,サバイバー段位,Discord ID\n"
+                + participants.map(p => `${p.username},${p.hunterRank},${p.survivorRank},${p.discordId}`).join("\n");
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `<%= tournament.title %>_participants.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'open': '募集中',
+                'closed': '締切',
+                'ongoing': '開催中',
+                'finished': '終了'
+            };
+            return statusMap[status] || status;
+        }
+    </script>
+
+    <% 
+    function formatDate(date) {
+        if (!date) return '未設定';
+        let d;
+        if (date.seconds) {
+            d = new Date(date.seconds * 1000);
+        } else {
+            d = new Date(date);
+        }
+        return d.toLocaleDateString('ja-JP', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    %>
+</body>
+</html>
