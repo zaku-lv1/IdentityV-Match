@@ -58,8 +58,40 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="matchTitle">試合名</label>
-                            <input type="text" id="matchTitle" name="matchTitle" required 
-                                   placeholder="例: 準決勝第1戦 または ゲーム1">
+                            <select id="matchTitle" name="matchTitle" required>
+                                <option value="">試合名を選択してください</option>
+                                <optgroup label="予選">
+                                    <option value="予選第1戦">予選第1戦</option>
+                                    <option value="予選第2戦">予選第2戦</option>
+                                    <option value="予選第3戦">予選第3戦</option>
+                                    <option value="予選第4戦">予選第4戦</option>
+                                    <option value="予選第5戦">予選第5戦</option>
+                                </optgroup>
+                                <optgroup label="決勝トーナメント">
+                                    <option value="1回戦第1試合">1回戦第1試合</option>
+                                    <option value="1回戦第2試合">1回戦第2試合</option>
+                                    <option value="1回戦第3試合">1回戦第3試合</option>
+                                    <option value="1回戦第4試合">1回戦第4試合</option>
+                                    <option value="準々決勝第1戦">準々決勝第1戦</option>
+                                    <option value="準々決勝第2戦">準々決勝第2戦</option>
+                                    <option value="準決勝第1戦">準決勝第1戦</option>
+                                    <option value="準決勝第2戦">準決勝第2戦</option>
+                                    <option value="3位決定戦">3位決定戦</option>
+                                    <option value="決勝戦">決勝戦</option>
+                                </optgroup>
+                                <optgroup label="シリーズ戦">
+                                    <option value="ゲーム1">ゲーム1</option>
+                                    <option value="ゲーム2">ゲーム2</option>
+                                    <option value="ゲーム3">ゲーム3</option>
+                                    <option value="ゲーム4">ゲーム4</option>
+                                    <option value="ゲーム5">ゲーム5</option>
+                                </optgroup>
+                                <optgroup label="練習・フレンドリー">
+                                    <option value="練習試合">練習試合</option>
+                                    <option value="フレンドリーマッチ">フレンドリーマッチ</option>
+                                    <option value="カスタム試合">カスタム試合</option>
+                                </optgroup>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="hunterTeam">ハンターのチーム（シリーズの場合）</label>
@@ -74,8 +106,9 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="hunterPlayer">ハンタープレイヤー</label>
-                            <input type="text" id="hunterPlayer" name="hunterPlayer" required 
-                                   placeholder="ハンターのプレイヤー名">
+                            <select id="hunterPlayer" name="hunterPlayer" required>
+                                <option value="">プレイヤーを選択してください</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="hunterCharacter">ハンターキャラクター</label>
@@ -96,8 +129,9 @@
                                 <div class="survivor-row">
                                     <div class="form-group survivor-name">
                                         <label for="survivorPlayer<%= i %>">プレイヤー<%= i %></label>
-                                        <input type="text" id="survivorPlayer<%= i %>" name="survivorPlayer<%= i %>" 
-                                               placeholder="プレイヤー名">
+                                        <select id="survivorPlayer<%= i %>" name="survivorPlayer<%= i %>">
+                                            <option value="">プレイヤーを選択してください</option>
+                                        </select>
                                     </div>
                                     <div class="form-group survivor-character">
                                         <label for="survivorCharacter<%= i %>">キャラクター</label>
@@ -462,6 +496,9 @@
     </style>
 
     <script>
+        // Store team members data
+        let tournamentTeams = {};
+        
         function calculatePoints() {
             const eliminated = parseInt(document.getElementById('eliminatedCount').value) || 0;
             const escaped = parseInt(document.getElementById('escapedCount').value) || 0;
@@ -493,6 +530,111 @@
             const eliminated = parseInt(this.value) || 0;
             const escaped = 4 - eliminated;
             document.getElementById('escapedCount').value = escaped;
+        });
+
+        // Load team members when tournament is selected
+        document.getElementById('tournamentId').addEventListener('change', async function() {
+            const tournamentId = this.value;
+            
+            if (!tournamentId) {
+                clearPlayerDropdowns();
+                return;
+            }
+            
+            try {
+                // Check if we already have team data for this tournament
+                if (!tournamentTeams[tournamentId]) {
+                    const response = await fetch(`/admin/api/tournaments/${tournamentId}/teams`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch teams');
+                    }
+                    const data = await response.json();
+                    tournamentTeams[tournamentId] = data.teams || [];
+                }
+                
+                populatePlayerDropdowns(tournamentTeams[tournamentId]);
+            } catch (error) {
+                console.error('Error loading teams:', error);
+                alert('チーム情報の読み込みに失敗しました。');
+                clearPlayerDropdowns();
+            }
+        });
+
+        function clearPlayerDropdowns() {
+            // Clear hunter player dropdown
+            const hunterSelect = document.getElementById('hunterPlayer');
+            hunterSelect.innerHTML = '<option value="">プレイヤーを選択してください</option>';
+            
+            // Clear survivor player dropdowns
+            for (let i = 1; i <= 4; i++) {
+                const survivorSelect = document.getElementById(`survivorPlayer${i}`);
+                survivorSelect.innerHTML = '<option value="">プレイヤーを選択してください</option>';
+            }
+        }
+
+        function populatePlayerDropdowns(teams) {
+            // Collect all unique team members across all teams
+            const allMembers = [];
+            const seenDiscordIds = new Set();
+            
+            teams.forEach(team => {
+                if (team.members && Array.isArray(team.members)) {
+                    team.members.forEach(member => {
+                        if (!seenDiscordIds.has(member.discordId)) {
+                            seenDiscordIds.add(member.discordId);
+                            allMembers.push({
+                                discordId: member.discordId,
+                                username: member.username,
+                                teamName: team.name,
+                                hunterRank: member.hunterRank,
+                                survivorRank: member.survivorRank
+                            });
+                        }
+                    });
+                }
+            });
+
+            // Sort members alphabetically by username
+            allMembers.sort((a, b) => a.username.localeCompare(b.username));
+
+            // Populate hunter player dropdown
+            const hunterSelect = document.getElementById('hunterPlayer');
+            hunterSelect.innerHTML = '<option value="">プレイヤーを選択してください</option>';
+            
+            allMembers.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.username;
+                option.textContent = `${member.username} (${member.teamName}) - H:${getRankDisplay(member.hunterRank)} S:${getRankDisplay(member.survivorRank)}`;
+                option.dataset.discordId = member.discordId;
+                hunterSelect.appendChild(option);
+            });
+
+            // Populate survivor player dropdowns
+            for (let i = 1; i <= 4; i++) {
+                const survivorSelect = document.getElementById(`survivorPlayer${i}`);
+                survivorSelect.innerHTML = '<option value="">プレイヤーを選択してください</option>';
+                
+                allMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.username;
+                    option.textContent = `${member.username} (${member.teamName}) - H:${getRankDisplay(member.hunterRank)} S:${getRankDisplay(member.survivorRank)}`;
+                    option.dataset.discordId = member.discordId;
+                    survivorSelect.appendChild(option);
+                });
+            }
+        }
+
+        function getRankDisplay(rank) {
+            if (rank === 8) return '最高峰';
+            return rank + '段';
+        }
+
+        // Initialize page - if tournament is already selected, load teams
+        document.addEventListener('DOMContentLoaded', function() {
+            const tournamentSelect = document.getElementById('tournamentId');
+            if (tournamentSelect.value) {
+                tournamentSelect.dispatchEvent(new Event('change'));
+            }
         });
     </script>
 </body>
