@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大会作成 - Identity V Tournament</title>
+    <title>大会作成テスト - Identity V Tournament</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -14,19 +14,18 @@
             </div>
             <div class="nav-links">
                 <a href="/tournaments">大会一覧</a>
-                <a href="/admin">管理画面</a>
-                <a href="/auth/logout">ログアウト</a>
+                <a href="/">ホーム</a>
             </div>
         </nav>
     </header>
 
     <main class="container">
         <div class="form-header">
-            <h2>🏆 新規大会作成</h2>
-            <p>新しい大会を作成します</p>
+            <h2>🏆 新規大会作成（テスト版）</h2>
+            <p>新しい大会を作成します（更新された要件）</p>
         </div>
 
-        <form action="/admin/tournaments/create" method="POST" class="tournament-form">
+        <form class="tournament-form">
             <div class="form-section">
                 <h3>基本情報</h3>
                 
@@ -72,6 +71,7 @@
                     <label for="rules">基本ルール</label>
                     <textarea id="rules" name="rules" rows="6"
                               placeholder="大会で適用される基本的なルールを記載してください">## 基本ルール
+- 4vs4の対戦形式
 - ランクマッチルールに準拠
 - 試合時間: 最大15分
 - 通常の第五人格ルールに従う
@@ -98,10 +98,19 @@
             </div>
 
             <div class="form-actions">
-                <a href="/admin/tournaments" class="btn btn-secondary">キャンセル</a>
-                <button type="submit" class="btn btn-primary">大会を作成</button>
+                <button type="button" onclick="alert('テスト版のため実際の作成は行われません')" class="btn btn-primary">大会を作成（テスト）</button>
             </div>
         </form>
+
+        <div class="test-info">
+            <h3>📋 更新内容</h3>
+            <ul>
+                <li>✅ 最小参加者数を4人から9人に変更</li>
+                <li>✅ チームサイズを4人固定に変更（4vs4対戦）</li>
+                <li>✅ 説明文を4vs4対戦に対応</li>
+                <li>✅ 手動チーム作成機能を追加（管理画面）</li>
+            </ul>
+        </div>
     </main>
 
     <style>
@@ -186,6 +195,30 @@
         .form-actions {
             text-align: center;
             margin-top: 2rem;
+        }
+
+        .test-info {
+            max-width: 800px;
+            margin: 3rem auto;
+            background: rgba(52, 152, 219, 0.2);
+            padding: 2rem;
+            border-radius: 15px;
+            border-left: 4px solid #3498db;
+        }
+
+        .test-info h3 {
+            color: #3498db;
+            margin-bottom: 1rem;
+        }
+
+        .test-info ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .test-info li {
+            margin-bottom: 0.5rem;
+            color: #ffffff;
         }
 
         @media (max-width: 768px) {

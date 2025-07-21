@@ -101,6 +101,9 @@
                             <button onclick="createRandomTeams()" class="btn btn-primary">
                                 ランダムチーム作成
                             </button>
+                            <button onclick="showManualTeamCreation()" class="btn btn-secondary">
+                                手動チーム作成
+                            </button>
                             <button onclick="clearAllTeams()" class="btn btn-danger">
                                 全チーム解散
                             </button>
@@ -137,7 +140,7 @@
                 <div class="teams-card">
                     <h3>🎯 チーム管理 (<%= teams.length %>チーム)</h3>
                     <div class="team-info-note">
-                        <p>💡 チーム編成は4〜7人で構成可能です。全てのチームが同じ人数である必要はありません。</p>
+                        <p>💡 チーム編成は4人で構成し、4vs4の対戦を行います。最低9人の参加者が必要です。</p>
                     </div>
                     
                     <% if (teams.length > 0) { %>
@@ -172,12 +175,12 @@
                     <% } else { %>
                         <div class="no-teams">
                             <p>まだチームが作成されていません</p>
-                            <% if (entries.length >= 4) { %>
+                            <% if (entries.length >= 9) { %>
                                 <button onclick="createRandomTeams()" class="btn btn-primary">
                                     ランダムチーム作成
                                 </button>
                             <% } else { %>
-                                <p class="note">チーム作成には最低4人の参加者が必要です</p>
+                                <p class="note">チーム作成には最低9人の参加者が必要です</p>
                             <% } %>
                         </div>
                     <% } %>
@@ -185,6 +188,30 @@
             </div>
         </div>
     </main>
+
+    <!-- Manual Team Creation Modal -->
+    <div id="manualTeamModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🎯 手動チーム作成</h3>
+                <span class="modal-close" onclick="closeManualTeamModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="team-creation-info">
+                    <p>参加者を選択してチームを作成してください。各チームは4人で構成されます。</p>
+                </div>
+                <div id="teamCreationContainer">
+                    <!-- Dynamic team creation forms will be inserted here -->
+                </div>
+                <div class="modal-actions">
+                    <button onclick="addNewTeamForm()" class="btn btn-secondary">チーム追加</button>
+                    <button onclick="removeLastTeamForm()" class="btn btn-danger">最後のチーム削除</button>
+                    <button onclick="createManualTeams()" class="btn btn-primary">チームを作成</button>
+                    <button onclick="closeManualTeamModal()" class="btn btn-outline">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <style>
         .admin-header {
@@ -427,9 +454,121 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-header h3 {
+            color: #f39c12;
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .modal-close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+
+        .modal-close:hover {
+            color: #f39c12;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .team-creation-info {
+            background: rgba(52, 152, 219, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            border-left: 4px solid #3498db;
+        }
+
+        .team-creation-info p {
+            margin: 0;
+            color: #3498db;
+        }
+
+        .team-form {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 2px solid rgba(243, 156, 18, 0.3);
+        }
+
+        .team-form h4 {
+            color: #f39c12;
+            margin-bottom: 1rem;
+        }
+
+        .team-members-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .member-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 5px;
+            padding: 0.8rem;
+            color: #ffffff;
+            font-size: 0.9rem;
+        }
+
+        .member-select option {
+            background: #1a1a2e;
+            color: #ffffff;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
     </style>
 
     <script>
+        const participants = <%-JSON.stringify(entries)%>;
+        let teamCounter = 0;
+
         async function updateStatus(newStatus) {
             if (!confirm(`大会ステータスを「${getStatusText(newStatus)}」に変更しますか？`)) {
                 return;
@@ -486,6 +625,11 @@
         }
 
         async function createRandomTeams() {
+            if (participants.length < 9) {
+                alert('ランダムチーム作成には最低9人の参加者が必要です');
+                return;
+            }
+
             if (!confirm('ランダムにチームを作成しますか？既存のチームは削除されます。')) {
                 return;
             }
@@ -502,6 +646,136 @@
 
                 if (result.success) {
                     alert(`${result.teamsCreated}個のチームを作成しました`);
+                    location.reload();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('チーム作成中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+
+        function showManualTeamCreation() {
+            if (participants.length < 9) {
+                alert('手動チーム作成には最低9人の参加者が必要です');
+                return;
+            }
+
+            document.getElementById('manualTeamModal').style.display = 'block';
+            document.getElementById('teamCreationContainer').innerHTML = '';
+            teamCounter = 0;
+            
+            // Add initial teams (2 teams for 4v4)
+            addNewTeamForm();
+            addNewTeamForm();
+        }
+
+        function closeManualTeamModal() {
+            document.getElementById('manualTeamModal').style.display = 'none';
+        }
+
+        function addNewTeamForm() {
+            teamCounter++;
+            const container = document.getElementById('teamCreationContainer');
+            
+            const teamForm = document.createElement('div');
+            teamForm.className = 'team-form';
+            teamForm.id = `team-form-${teamCounter}`;
+            
+            teamForm.innerHTML = `
+                <h4>チーム ${teamCounter}</h4>
+                <div class="team-members-selection">
+                    ${Array.from({length: 4}, (_, i) => `
+                        <select class="member-select" name="team${teamCounter}_member${i+1}">
+                            <option value="">メンバー${i+1}を選択</option>
+                            ${participants.map(p => `<option value="${p.discordId}">${p.username} (H:${p.hunterRank}段 S:${p.survivorRank}段)</option>`).join('')}
+                        </select>
+                    `).join('')}
+                </div>
+            `;
+            
+            container.appendChild(teamForm);
+        }
+
+        function removeLastTeamForm() {
+            if (teamCounter <= 2) {
+                alert('最低2チームは必要です');
+                return;
+            }
+            
+            const teamForm = document.getElementById(`team-form-${teamCounter}`);
+            if (teamForm) {
+                teamForm.remove();
+                teamCounter--;
+            }
+        }
+
+        async function createManualTeams() {
+            const teams = [];
+            const usedParticipants = new Set();
+            
+            // Collect team data
+            for (let i = 1; i <= teamCounter; i++) {
+                const teamForm = document.getElementById(`team-form-${i}`);
+                if (!teamForm) continue;
+                
+                const members = [];
+                const selects = teamForm.querySelectorAll('.member-select');
+                
+                for (const select of selects) {
+                    if (select.value) {
+                        if (usedParticipants.has(select.value)) {
+                            alert(`参加者が重複しています: ${select.options[select.selectedIndex].text}`);
+                            return;
+                        }
+                        
+                        const participant = participants.find(p => p.discordId === select.value);
+                        if (participant) {
+                            members.push(participant);
+                            usedParticipants.add(select.value);
+                        }
+                    }
+                }
+                
+                if (members.length > 0) {
+                    teams.push({
+                        name: `チーム${i}`,
+                        members: members
+                    });
+                }
+            }
+            
+            if (teams.length < 2) {
+                alert('最低2チームを作成してください');
+                return;
+            }
+
+            // Check if we have at least 8 participants in teams (4v4 minimum)
+            const totalMembers = teams.reduce((sum, team) => sum + team.members.length, 0);
+            if (totalMembers < 8) {
+                alert('4vs4の対戦のため、最低8人が必要です');
+                return;
+            }
+
+            if (!confirm(`${teams.length}個のチームを作成しますか？既存のチームは削除されます。`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/tournaments/<%= tournament.id %>/teams/manual`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ teams })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`${result.teamsCreated}個のチームを作成しました`);
+                    closeManualTeamModal();
                     location.reload();
                 } else {
                     alert('エラー: ' + result.error);
@@ -572,7 +846,6 @@
         }
 
         function exportParticipants() {
-            const participants = <%-JSON.stringify(entries)%>;
             const csvContent = "data:text/csv;charset=utf-8," 
                 + "名前,ハンター段位,サバイバー段位,Discord ID\n"
                 + participants.map(p => `${p.username},${p.hunterRank},${p.survivorRank},${p.discordId}`).join("\n");
@@ -594,6 +867,14 @@
                 'finished': '終了'
             };
             return statusMap[status] || status;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('manualTeamModal');
+            if (event.target == modal) {
+                closeManualTeamModal();
+            }
         }
     </script>
 

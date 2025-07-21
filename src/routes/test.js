@@ -3,6 +3,16 @@ const { getDb } = require('../config/firebase');
 const { getSurvivorCharacters, getCharacterName, getHunterCharacters } = require('../config/characters');
 const router = express.Router();
 
+// Test team management
+router.get('/team-management', (req, res) => {
+  res.render('test/team-management');
+});
+
+// Test tournament form
+router.get('/tournament-form', (req, res) => {
+  res.render('test/tournament-form');
+});
+
 // Test character selection form
 router.get('/character-form', async (req, res) => {
   try {

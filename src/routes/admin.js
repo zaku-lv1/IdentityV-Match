@@ -172,6 +172,79 @@ router.get('/tournaments/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// Create teams (manual)
+router.post('/tournaments/:id/teams/manual', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const tournamentId = req.params.id;
+    const { teams } = req.body;
+    
+    // Get tournament and validate
+    const tournamentDoc = await db.collection('tournaments').doc(tournamentId).get();
+    if (!tournamentDoc.exists) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+    
+    const tournament = tournamentDoc.data();
+    
+    // Only allow team creation for closed or ongoing tournaments
+    if (tournament.status === 'open') {
+      return res.status(400).json({ error: 'エントリー期限を締切ってからチームを作成してください' });
+    }
+    
+    // Validate teams data
+    if (!teams || !Array.isArray(teams) || teams.length < 2) {
+      return res.status(400).json({ error: '最低2チームが必要です' });
+    }
+    
+    // Count total members and validate minimum for 4v4
+    const totalMembers = teams.reduce((sum, team) => sum + (team.members ? team.members.length : 0), 0);
+    if (totalMembers < 8) {
+      return res.status(400).json({ error: '4vs4の対戦のため、最低8人が必要です' });
+    }
+
+    // Delete existing teams first
+    const existingTeamsSnapshot = await db.collection('teams')
+      .where('tournamentId', '==', tournamentId)
+      .get();
+    
+    const deleteBatch = db.batch();
+    existingTeamsSnapshot.docs.forEach(doc => {
+      deleteBatch.delete(doc.ref);
+    });
+    await deleteBatch.commit();
+    
+    // Create new teams
+    const createdTeams = [];
+    for (const team of teams) {
+      if (team.members && team.members.length > 0) {
+        const teamData = {
+          tournamentId,
+          name: team.name,
+          members: team.members,
+          createdAt: new Date(),
+          createdBy: req.user.discordId
+        };
+        
+        const teamRef = await db.collection('teams').add(teamData);
+        createdTeams.push({ id: teamRef.id, ...teamData });
+      }
+    }
+    
+    console.log(`Created ${createdTeams.length} manual teams for tournament ${tournamentId}`);
+    
+    res.json({ 
+      success: true, 
+      teams: createdTeams,
+      teamsCreated: createdTeams.length,
+      message: `${createdTeams.length}個のチームを作成しました`
+    });
+  } catch (error) {
+    console.error('Error creating manual teams:', error);
+    res.status(500).json({ error: 'Failed to create teams' });
+  }
+});
+
 // Create teams (random)
 router.post('/tournaments/:id/teams/random', requireAdmin, async (req, res) => {
   try {
@@ -198,8 +271,8 @@ router.post('/tournaments/:id/teams/random', requireAdmin, async (req, res) => {
     
     const entries = entriesSnapshot.docs.map(doc => doc.data());
     
-    if (entries.length < 4) {
-      return res.status(400).json({ error: 'チーム作成には最低4人の参加者が必要です' });
+    if (entries.length < 9) {
+      return res.status(400).json({ error: 'チーム作成には最低9人の参加者が必要です（4vs4で最低8人＋予備1人）' });
     }
     
     // Delete existing teams first
@@ -215,23 +288,25 @@ router.post('/tournaments/:id/teams/random', requireAdmin, async (req, res) => {
     
     // Shuffle entries randomly
     const shuffledEntries = entries.sort(() => Math.random() - 0.5);
-    const teamSize = tournament.teamSize || 5;
+    const teamSize = 4; // Fixed to 4 for 4v4 matches
     const teams = [];
     
     for (let i = 0; i < shuffledEntries.length; i += teamSize) {
       const teamMembers = shuffledEntries.slice(i, i + teamSize);
-      const teamName = `チーム${Math.floor(i / teamSize) + 1}`;
-      
-      const teamData = {
-        tournamentId,
-        name: teamName,
-        members: teamMembers,
-        createdAt: new Date(),
-        createdBy: req.user.discordId
-      };
-      
-      const teamRef = await db.collection('teams').add(teamData);
-      teams.push({ id: teamRef.id, ...teamData });
+      if (teamMembers.length === teamSize) { // Only create teams with exactly 4 members
+        const teamName = `チーム${Math.floor(i / teamSize) + 1}`;
+        
+        const teamData = {
+          tournamentId,
+          name: teamName,
+          members: teamMembers,
+          createdAt: new Date(),
+          createdBy: req.user.discordId
+        };
+        
+        const teamRef = await db.collection('teams').add(teamData);
+        teams.push({ id: teamRef.id, ...teamData });
+      }
     }
     
     console.log(`Created ${teams.length} teams for tournament ${tournamentId}`);
