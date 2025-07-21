@@ -58,7 +58,15 @@
                         </div>
                         <div class="info-item">
                             <span class="info-label">エントリー締切</span>
-                            <span class="info-value"><%= formatDate(tournament.entryDeadline) %></span>
+                            <span class="info-value">
+                                <%= formatDate(tournament.entryDeadline) %>
+                                <% if (tournament.deadlineInfo) { %>
+                                    <br>
+                                    <span class="deadline-status <%= tournament.deadlineInfo.expired ? 'expired' : 'active' %>">
+                                        <%= tournament.deadlineInfo.timeRemaining %>
+                                    </span>
+                                <% } %>
+                            </span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">現在のエントリー数</span>
@@ -94,10 +102,14 @@
                             <div class="entry-status">
                                 <p class="success-message">✅ エントリー済み</p>
                                 <p>あなたは既にこの大会にエントリーしています。</p>
-                                <button onclick="cancelEntry()" class="btn btn-danger">エントリーをキャンセル</button>
+                                <% if (tournament.entryPermission && tournament.entryPermission.allowed) { %>
+                                    <button onclick="cancelEntry()" class="btn btn-danger">エントリーをキャンセル</button>
+                                <% } else { %>
+                                    <p class="entry-info">💡 <%= tournament.entryPermission.reason %></p>
+                                <% } %>
                             </div>
                         <% } else { %>
-                            <% if (tournament.status === 'open') { %>
+                            <% if (tournament.entryPermission && tournament.entryPermission.allowed) { %>
                                 <% if (user.hunterRank && user.survivorRank) { %>
                                     <div class="entry-form">
                                         <p>この大会にエントリーしますか？</p>
@@ -115,7 +127,10 @@
                                 <% } %>
                             <% } else { %>
                                 <div class="entry-disabled">
-                                    <p>この大会はエントリーを受け付けていません</p>
+                                    <p class="entry-error">⚠️ <%= tournament.entryPermission.reason %></p>
+                                    <% if (tournament.status === 'closed' && user.isAdmin) { %>
+                                        <a href="/admin/tournaments/<%= tournament.id %>" class="btn btn-secondary">管理画面でチーム分けを行う</a>
+                                    <% } %>
                                 </div>
                             <% } %>
                         <% } %>
@@ -304,6 +319,37 @@
         .btn-danger {
             background: linear-gradient(45deg, #e74c3c, #c0392b);
             color: white;
+        }
+        
+        .deadline-status {
+            font-size: 0.9rem;
+            font-weight: bold;
+            padding: 0.3rem 0.6rem;
+            border-radius: 10px;
+            margin-top: 0.5rem;
+            display: inline-block;
+        }
+        
+        .deadline-status.active {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+        }
+        
+        .deadline-status.expired {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        .entry-error {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .entry-info {
+            color: #f39c12;
+            font-style: italic;
+            margin-top: 1rem;
         }
 
         @media (max-width: 768px) {
