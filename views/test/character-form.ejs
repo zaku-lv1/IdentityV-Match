@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>キャラクター追跡テスト - Identity V Tournament</title>
+    <title>キャラクター追跡テスト - Identity V Match</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <header>
         <nav class="navbar">
             <div class="nav-brand">
-                <h1><a href="/">Identity V Tournament</a></h1>
+                <h1><a href="/">Identity V Match</a></h1>
             </div>
             <div class="nav-links">
                 <a href="/test/character-form" class="active">キャラクターテスト</a>
@@ -33,7 +33,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="tournamentId">大会選択</label>
-                            <select id="tournamentId" name="tournamentId" required>
+                            <select id="tournamentId" name="tournamentId" required onchange="loadTournamentTeams()">
                                 <option value="">大会を選択してください</option>
                                 <% tournaments.forEach(tournament => { %>
                                     <option value="<%= tournament.id %>"><%= tournament.title %></option>
@@ -50,6 +50,22 @@
                                         <%= series.team1Name %> vs <%= series.team2Name %>
                                     </option>
                                 <% }); %>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Team Selection Section -->
+                    <div class="form-row team-selection-section" style="display: none;">
+                        <div class="form-group">
+                            <label for="hunterTeamSelect">ハンターチーム選択</label>
+                            <select id="hunterTeamSelect" name="hunterTeamSelect" onchange="loadTeamMembers('hunter')">
+                                <option value="">チームを選択してください</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="survivorTeamSelect">サバイバーチーム選択</label>
+                            <select id="survivorTeamSelect" name="survivorTeamSelect" onchange="loadTeamMembers('survivor')">
+                                <option value="">チームを選択してください</option>
                             </select>
                         </div>
                     </div>
@@ -73,8 +89,11 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="hunterPlayer">ハンタープレイヤー</label>
-                            <input type="text" id="hunterPlayer" name="hunterPlayer" required 
-                                   placeholder="ハンターのプレイヤー名">
+                            <select id="hunterPlayer" name="hunterPlayer" required style="display: none;">
+                                <option value="">チームメンバーを選択してください</option>
+                            </select>
+                            <input type="text" id="hunterPlayerInput" name="hunterPlayerInput" required 
+                                   placeholder="ハンターのプレイヤー名" style="display: block;">
                         </div>
                         <div class="form-group">
                             <label for="hunterCharacter">ハンターキャラクター</label>
@@ -90,13 +109,24 @@
                     <!-- Survivor Players Section -->
                     <div class="survivors-section">
                         <h4>サバイバープレイヤー</h4>
+                        <div class="survivor-mode-toggle">
+                            <label for="survivorModeSelect">入力モード:</label>
+                            <select id="survivorModeSelect" onchange="toggleSurvivorMode()">
+                                <option value="manual">手動入力</option>
+                                <option value="team">チームから選択</option>
+                            </select>
+                        </div>
                         <div class="survivor-players">
                             <% for (let i = 1; i <= 4; i++) { %>
                                 <div class="survivor-row">
                                     <div class="form-group survivor-name">
                                         <label for="survivorPlayer<%= i %>">プレイヤー<%= i %></label>
+                                        <select id="survivorPlayerSelect<%= i %>" name="survivorPlayerSelect<%= i %>" 
+                                               style="display: none;" onchange="updateSurvivorInput(<%= i %>)">
+                                            <option value="">選択してください</option>
+                                        </select>
                                         <input type="text" id="survivorPlayer<%= i %>" name="survivorPlayer<%= i %>" 
-                                               placeholder="プレイヤー名">
+                                               placeholder="プレイヤー名" style="display: block;">
                                     </div>
                                     <div class="form-group survivor-character">
                                         <label for="survivorCharacter<%= i %>">キャラクター</label>
@@ -196,8 +226,34 @@
         }
 
         .survivor-name input,
-        .survivor-character select {
+        .survivor-character select,
+        .survivor-name select {
             width: 100%;
+        }
+
+        .team-selection-section {
+            background: rgba(0, 123, 255, 0.1);
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .survivor-mode-toggle {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .survivor-mode-toggle label {
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        .survivor-mode-toggle select {
+            padding: 0.25rem;
+            border-radius: 4px;
         }
 
         @media (max-width: 768px) {
@@ -234,9 +290,173 @@
             document.getElementById('escapedCount').value = escaped;
         });
         
+        // Global variables to store teams and their members
+        let tournamentTeams = [];
+        
+        // Load teams when tournament is selected
+        async function loadTournamentTeams() {
+            const tournamentId = document.getElementById('tournamentId').value;
+            const teamSelectionSection = document.querySelector('.team-selection-section');
+            
+            if (!tournamentId) {
+                teamSelectionSection.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/api/tournaments/${tournamentId}/teams`);
+                const data = await response.json();
+                
+                if (data.teams && data.teams.length > 0) {
+                    tournamentTeams = data.teams;
+                    populateTeamSelectors();
+                    teamSelectionSection.style.display = 'block';
+                } else {
+                    teamSelectionSection.style.display = 'none';
+                    // Reset to manual input mode
+                    toggleToManualMode();
+                }
+            } catch (error) {
+                console.error('Error loading teams:', error);
+                teamSelectionSection.style.display = 'none';
+                toggleToManualMode();
+            }
+        }
+        
+        // Populate team selector dropdowns
+        function populateTeamSelectors() {
+            const hunterTeamSelect = document.getElementById('hunterTeamSelect');
+            const survivorTeamSelect = document.getElementById('survivorTeamSelect');
+            
+            // Clear existing options
+            hunterTeamSelect.innerHTML = '<option value="">チームを選択してください</option>';
+            survivorTeamSelect.innerHTML = '<option value="">チームを選択してください</option>';
+            
+            // Add team options
+            tournamentTeams.forEach(team => {
+                const option1 = new Option(team.name, team.id);
+                const option2 = new Option(team.name, team.id);
+                hunterTeamSelect.add(option1);
+                survivorTeamSelect.add(option2);
+            });
+        }
+        
+        // Load team members when a team is selected
+        function loadTeamMembers(role) {
+            const teamSelectId = role === 'hunter' ? 'hunterTeamSelect' : 'survivorTeamSelect';
+            const teamId = document.getElementById(teamSelectId).value;
+            
+            if (!teamId) {
+                if (role === 'hunter') {
+                    toggleHunterInputMode('manual');
+                } else {
+                    // For survivors, reset to manual mode
+                    document.getElementById('survivorModeSelect').value = 'manual';
+                    toggleSurvivorMode();
+                }
+                return;
+            }
+            
+            const selectedTeam = tournamentTeams.find(team => team.id === teamId);
+            if (!selectedTeam || !selectedTeam.members) {
+                return;
+            }
+            
+            if (role === 'hunter') {
+                populateHunterMembers(selectedTeam.members);
+            } else {
+                populateSurvivorMembers(selectedTeam.members);
+            }
+        }
+        
+        // Populate hunter member dropdown
+        function populateHunterMembers(members) {
+            const hunterPlayerSelect = document.getElementById('hunterPlayer');
+            hunterPlayerSelect.innerHTML = '<option value="">チームメンバーを選択してください</option>';
+            
+            members.forEach(member => {
+                const option = new Option(member.username, member.username);
+                hunterPlayerSelect.add(option);
+            });
+            
+            toggleHunterInputMode('team');
+        }
+        
+        // Populate survivor member dropdowns
+        function populateSurvivorMembers(members) {
+            for (let i = 1; i <= 4; i++) {
+                const selectElement = document.getElementById(`survivorPlayerSelect${i}`);
+                selectElement.innerHTML = '<option value="">選択してください</option>';
+                
+                members.forEach(member => {
+                    const option = new Option(member.username, member.username);
+                    selectElement.add(option);
+                });
+            }
+            
+            // Switch to team selection mode
+            document.getElementById('survivorModeSelect').value = 'team';
+            toggleSurvivorMode();
+        }
+        
+        // Toggle hunter input mode between manual and team selection
+        function toggleHunterInputMode(mode) {
+            const playerSelect = document.getElementById('hunterPlayer');
+            const playerInput = document.getElementById('hunterPlayerInput');
+            
+            if (mode === 'team') {
+                playerSelect.style.display = 'block';
+                playerInput.style.display = 'none';
+                playerInput.removeAttribute('required');
+                playerSelect.setAttribute('required', 'required');
+            } else {
+                playerSelect.style.display = 'none';
+                playerInput.style.display = 'block';
+                playerSelect.removeAttribute('required');
+                playerInput.setAttribute('required', 'required');
+            }
+        }
+        
+        // Toggle survivor input mode
+        function toggleSurvivorMode() {
+            const mode = document.getElementById('survivorModeSelect').value;
+            
+            for (let i = 1; i <= 4; i++) {
+                const selectElement = document.getElementById(`survivorPlayerSelect${i}`);
+                const inputElement = document.getElementById(`survivorPlayer${i}`);
+                
+                if (mode === 'team') {
+                    selectElement.style.display = 'block';
+                    inputElement.style.display = 'none';
+                } else {
+                    selectElement.style.display = 'none';
+                    inputElement.style.display = 'block';
+                    // Clear selection
+                    selectElement.value = '';
+                }
+            }
+        }
+        
+        // Update survivor input when team member is selected
+        function updateSurvivorInput(playerNumber) {
+            const selectElement = document.getElementById(`survivorPlayerSelect${playerNumber}`);
+            const inputElement = document.getElementById(`survivorPlayer${playerNumber}`);
+            inputElement.value = selectElement.value;
+        }
+        
+        // Reset to manual mode when no teams are available
+        function toggleToManualMode() {
+            toggleHunterInputMode('manual');
+            document.getElementById('survivorModeSelect').value = 'manual';
+            toggleSurvivorMode();
+        }
+        
         // Handle form submission
         document.querySelector('.match-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // Sync selected team members to the input fields before submission
+            syncFormData();
             
             try {
                 const response = await fetch('/test/match-results', {
@@ -250,6 +470,9 @@
                     alert('✅ 試合結果が保存されました！\n\n結果表示ページで確認できます。');
                     // Reset form
                     this.reset();
+                    // Reset team selection
+                    document.querySelector('.team-selection-section').style.display = 'none';
+                    toggleToManualMode();
                 } else {
                     alert('❌ エラー: ' + result.error);
                 }
@@ -257,6 +480,28 @@
                 alert('❌ 保存中にエラーが発生しました: ' + error.message);
             }
         });
+        
+        // Sync team selection data to input fields for form submission
+        function syncFormData() {
+            // Sync hunter player
+            const hunterPlayerSelect = document.getElementById('hunterPlayer');
+            const hunterPlayerInput = document.getElementById('hunterPlayerInput');
+            if (hunterPlayerSelect.style.display !== 'none' && hunterPlayerSelect.value) {
+                hunterPlayerInput.value = hunterPlayerSelect.value;
+            }
+            
+            // Sync survivor players
+            const survivorMode = document.getElementById('survivorModeSelect').value;
+            if (survivorMode === 'team') {
+                for (let i = 1; i <= 4; i++) {
+                    const selectElement = document.getElementById(`survivorPlayerSelect${i}`);
+                    const inputElement = document.getElementById(`survivorPlayer${i}`);
+                    if (selectElement.value) {
+                        inputElement.value = selectElement.value;
+                    }
+                }
+            }
+        }
     </script>
 </body>
 </html>
