@@ -1,6 +1,6 @@
 const express = require('express');
 const { getDb } = require('../config/firebase');
-const { getSurvivorCharacters, getCharacterName } = require('../config/characters');
+const { getSurvivorCharacters, getCharacterName, getHunterCharacters } = require('../config/characters');
 const router = express.Router();
 
 // Test character selection form
@@ -30,6 +30,7 @@ router.get('/character-form', async (req, res) => {
       tournaments, 
       activeSeries,
       survivorCharacters: getSurvivorCharacters(),
+      hunterCharacters: getHunterCharacters(),
       getCharacterName
     });
   } catch (error) {
