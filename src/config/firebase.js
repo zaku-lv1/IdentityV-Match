@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
 const path = require('path');
 const fs = require('fs');
+const PersistentMockFirestore = require('./persistentMockFirestore');
 
 let db;
 
@@ -16,8 +17,8 @@ const initializeFirebase = () => {
       console.warn('You can download it from Firebase Console > Project Settings > Service Accounts');
       
       // 開発用のダミーサービスを作成
-      console.log('Creating mock Firebase service for development...');
-      db = createMockFirestore();
+      console.log('Creating persistent mock Firebase service for development...');
+      db = new PersistentMockFirestore();
       return;
     }
 
@@ -36,8 +37,8 @@ const initializeFirebase = () => {
     console.log('Firebase initialized successfully');
   } catch (error) {
     console.error('Firebase initialization error:', error);
-    console.log('Falling back to mock database for development');
-    db = createMockFirestore();
+    console.log('Falling back to persistent mock database for development');
+    db = new PersistentMockFirestore();
   }
 };
 

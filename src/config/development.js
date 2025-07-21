@@ -233,6 +233,163 @@ const initDevelopmentData = async (db) => {
       }
     }
     
+    // サンプル試合結果を作成（実際の試合データをシミュレート）
+    const sampleMatchResults = [
+      {
+        tournamentId: 'sample-tournament',
+        seriesId: 'sample-series-1',
+        gameNumber: 1,
+        matchTitle: '準決勝 第1試合 - チームA vs チームB',
+        hunterPlayer: 'ProHunter_A',
+        hunterCharacter: 'photographer',
+        hunterTeam: 'team1',
+        survivorPlayers: [
+          { name: 'Survivor_B1', character: 'coordinator' },
+          { name: 'Survivor_B2', character: 'mercenary' },
+          { name: 'Survivor_B3', character: 'decoder' },
+          { name: 'Survivor_B4', character: 'priestess' }
+        ],
+        eliminatedCount: 3,
+        escapedCount: 1,
+        hunterPoints: 3,
+        survivorPoints: 1,
+        gameWinner: 'team1',
+        bonusApplied: false,
+        notes: 'チームAのハンターが圧倒的パフォーマンスを見せた',
+        createdBy: 'development-seed',
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2時間前
+      },
+      {
+        tournamentId: 'sample-tournament',
+        seriesId: 'sample-series-1',
+        gameNumber: 2,
+        matchTitle: '準決勝 第2試合 - チームB vs チームA',
+        hunterPlayer: 'EliteHunter_B',
+        hunterCharacter: 'violinist',
+        hunterTeam: 'team2',
+        survivorPlayers: [
+          { name: 'Survivor_A1', character: 'seer' },
+          { name: 'Survivor_A2', character: 'perfumer' },
+          { name: 'Survivor_A3', character: 'mechanic' },
+          { name: 'Survivor_A4', character: 'forward' }
+        ],
+        eliminatedCount: 1,
+        escapedCount: 3,
+        hunterPoints: 1,
+        survivorPoints: 3,
+        gameWinner: 'team1', // team1 = チームA（サバイバー側でこの試合勝利）
+        bonusApplied: false,
+        notes: 'チームAのサバイバーチームが見事な連携で逆転',
+        createdBy: 'development-seed',
+        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000) // 1時間前
+      },
+      {
+        tournamentId: 'sample-tournament',
+        seriesId: 'sample-series-1',
+        gameNumber: 3,
+        matchTitle: '準決勝 決着戦 - チームA vs チームB',
+        hunterPlayer: 'ProHunter_A',
+        hunterCharacter: 'sculptor',
+        hunterTeam: 'team1',
+        survivorPlayers: [
+          { name: 'Survivor_B1', character: 'enchantress' },
+          { name: 'Survivor_B2', character: 'grave_keeper' },
+          { name: 'Survivor_B3', character: 'cowboy' },
+          { name: 'Survivor_B4', character: 'prisoner' }
+        ],
+        eliminatedCount: 2,
+        escapedCount: 2,
+        hunterPoints: 2,
+        survivorPoints: 2,
+        gameWinner: 'team1', // ハンター勝利（より多くの吊りで勝利）
+        bonusApplied: true, // 接戦のためボーナス適用
+        notes: 'BO3の決着戦！最後まで接戦となった名勝負',
+        createdBy: 'development-seed',
+        createdAt: new Date(Date.now() - 30 * 60 * 1000) // 30分前
+      },
+      {
+        tournamentId: 'competitive-tournament',
+        seriesId: 'sample-series-2',
+        gameNumber: 1,
+        matchTitle: '決勝戦 第1試合 - 最強チーム vs エリートチーム',
+        hunterPlayer: 'ChampionHunter',
+        hunterCharacter: 'nightmare',
+        hunterTeam: 'team1',
+        survivorPlayers: [
+          { name: 'EliteSurvivor1', character: 'seer' },
+          { name: 'EliteSurvivor2', character: 'mercenary' },
+          { name: 'EliteSurvivor3', character: 'decoder' },
+          { name: 'EliteSurvivor4', character: 'coordinator' }
+        ],
+        eliminatedCount: 4,
+        escapedCount: 0,
+        hunterPoints: 4,
+        survivorPoints: 0,
+        gameWinner: 'team1',
+        bonusApplied: false,
+        notes: '最高峰限定大会の決勝戦開幕！ハンターの完全勝利',
+        createdBy: 'development-seed',
+        createdAt: new Date(Date.now() - 10 * 60 * 1000) // 10分前
+      },
+      {
+        tournamentId: 'competitive-tournament',
+        seriesId: null, // 個別試合
+        gameNumber: 1,
+        matchTitle: '練習試合 - フリー対戦',
+        hunterPlayer: 'PracticeHunter',
+        hunterCharacter: 'wax_artist',
+        hunterTeam: null,
+        survivorPlayers: [
+          { name: 'TestPlayer1', character: 'first_officer' },
+          { name: 'TestPlayer2', character: 'barmaid' },
+          { name: 'TestPlayer3', character: 'postman' },
+          { name: 'TestPlayer4', character: 'patient' }
+        ],
+        eliminatedCount: 2,
+        escapedCount: 2,
+        hunterPoints: 2,
+        survivorPoints: 2,
+        gameWinner: null, // 引き分け
+        bonusApplied: false,
+        notes: '練習試合として実施。新キャラクターのテストプレイ',
+        createdBy: 'development-seed',
+        createdAt: new Date(Date.now() - 5 * 60 * 1000) // 5分前
+      }
+    ];
+    
+    for (const matchResult of sampleMatchResults) {
+      const existingMatch = await db.collection('matchResults')
+        .where('tournamentId', '==', matchResult.tournamentId)
+        .where('gameNumber', '==', matchResult.gameNumber)
+        .where('matchTitle', '==', matchResult.matchTitle)
+        .get();
+      
+      if (existingMatch.empty) {
+        await db.collection('matchResults').add(matchResult);
+      }
+    }
+    
+    // シリーズの進行状況を更新
+    await db.collection('series').doc('sample-series-1').update({
+      games: [
+        { gameNumber: 1, winner: 'team1', hunterPoints: 3, survivorPoints: 1 },
+        { gameNumber: 2, winner: 'team1', hunterPoints: 1, survivorPoints: 3 },
+        { gameNumber: 3, winner: 'team1', hunterPoints: 2, survivorPoints: 2 }
+      ],
+      winner: 'team1', // チームAが2-1で勝利
+      status: 'completed',
+      notes: 'BO3シリーズが完了。チームAが準決勝を突破。'
+    });
+    
+    await db.collection('series').doc('sample-series-2').update({
+      games: [
+        { gameNumber: 1, winner: 'team1', hunterPoints: 4, survivorPoints: 0 }
+      ],
+      winner: null, // まだ進行中
+      status: 'ongoing',
+      notes: '決勝戦進行中。最強チームが第1試合を制した。'
+    });
+    
     console.log('Development data setup completed successfully');
   } catch (error) {
     console.error('Error setting up development data:', error);
