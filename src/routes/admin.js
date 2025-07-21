@@ -2,7 +2,8 @@ const express = require('express');
 const { getDb } = require('../config/firebase');
 const { 
   getUpdatedTournamentStatus,
-  formatJapaneseDate 
+  formatJapaneseDate,
+  validateTeamFormation
 } = require('../utils/tournamentUtils');
 const { getSurvivorCharacters, getCharacterName, getHunterCharacters } = require('../config/characters');
 const router = express.Router();
@@ -198,8 +199,10 @@ router.post('/tournaments/:id/teams/random', requireAdmin, async (req, res) => {
     
     const entries = entriesSnapshot.docs.map(doc => doc.data());
     
-    if (entries.length < 4) {
-      return res.status(400).json({ error: 'チーム作成には最低4人の参加者が必要です' });
+    // Validate team formation constraints
+    const teamFormationValidation = validateTeamFormation(entries.length);
+    if (!teamFormationValidation.allowed) {
+      return res.status(400).json({ error: teamFormationValidation.reason });
     }
     
     // Delete existing teams first
