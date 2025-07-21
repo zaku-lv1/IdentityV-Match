@@ -234,12 +234,10 @@
         document.querySelector('.match-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const formData = new FormData(this);
-            
             try {
                 const response = await fetch('/test/match-results', {
                     method: 'POST',
-                    body: formData
+                    body: new FormData(this)
                 });
                 
                 const result = await response.json();
