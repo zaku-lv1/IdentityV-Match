@@ -4,7 +4,7 @@ const {
   getUpdatedTournamentStatus,
   formatJapaneseDate 
 } = require('../utils/tournamentUtils');
-const { getSurvivorCharacters, getCharacterName } = require('../config/characters');
+const { getSurvivorCharacters, getCharacterName, getHunterCharacters } = require('../config/characters');
 const router = express.Router();
 
 // Admin dashboard
@@ -391,6 +391,7 @@ router.get('/match-results', requireAdmin, async (req, res) => {
       tournaments, 
       activeSeries,
       survivorCharacters: getSurvivorCharacters(),
+      hunterCharacters: getHunterCharacters(),
       getCharacterName
     });
   } catch (error) {
@@ -453,10 +454,10 @@ router.post('/match-results', requireAdmin, async (req, res) => {
     let hunterPoints = parseInt(eliminatedCount) || 0;
     let survivorPoints = parseInt(escapedCount) || 0;
     
-    // Apply bonus scoring if enabled and hunter got 4 eliminations
-    if (enableBonusScoring && hunterPoints === 4) {
-      hunterPoints = 5;
-      survivorPoints = 0;
+    // Apply bonus scoring if enabled and survivors got 4 escapes
+    if (enableBonusScoring && survivorPoints === 4) {
+      survivorPoints = 5;
+      hunterPoints = 0;
     }
     
     // Determine which team won this game
@@ -488,7 +489,7 @@ router.post('/match-results', requireAdmin, async (req, res) => {
       hunterPoints,
       survivorPoints,
       gameWinner,
-      bonusApplied: enableBonusScoring && parseInt(eliminatedCount) === 4,
+      bonusApplied: enableBonusScoring && parseInt(escapedCount) === 4,
       notes: notes || '',
       createdBy: req.user.discordId,
       createdAt: new Date()

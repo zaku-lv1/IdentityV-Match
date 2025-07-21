@@ -78,9 +78,13 @@
                                    placeholder="ハンターのプレイヤー名">
                         </div>
                         <div class="form-group">
-                            <label for="hunterCharacter">ハンターキャラクター（今後実装予定）</label>
-                            <input type="text" id="hunterCharacter" name="hunterCharacter" 
-                                   placeholder="今後実装予定" disabled>
+                            <label for="hunterCharacter">ハンターキャラクター</label>
+                            <select id="hunterCharacter" name="hunterCharacter">
+                                <option value="">キャラクターを選択（オプション）</option>
+                                <% hunterCharacters.forEach(character => { %>
+                                    <option value="<%= character.id %>"><%= character.name %></option>
+                                <% }); %>
+                            </select>
                         </div>
                     </div>
 
@@ -192,7 +196,7 @@
                                             <div class="player-info">
                                                 <%= result.hunterPlayer %>
                                                 <% if (result.hunterCharacter) { %>
-                                                    <div class="character-info">(<%= getCharacterName(result.hunterCharacter) %>)</div>
+                                                    <div class="character-info">(<%= getCharacterName(result.hunterCharacter, 'hunter') %>)</div>
                                                 <% } %>
                                             </div>
                                             <% if (result.hunterTeam) { %>

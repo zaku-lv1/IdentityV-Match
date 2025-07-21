@@ -53,28 +53,62 @@ const SURVIVOR_CHARACTERS = [
   { id: 'escape-master', name: '「脱出マスター」', nameEn: 'Escape Master' }
 ];
 
-// ハンターキャラクター（将来の拡張用）
+// ハンターキャラクター定義
 const HUNTER_CHARACTERS = [
-  // 今後追加予定
+  { id: 'avenger', name: '復讐者', nameEn: 'Avenger' },
+  { id: 'joker', name: '道化師', nameEn: 'Joker' },
+  { id: 'ripper', name: 'リッパー', nameEn: 'Ripper' },
+  { id: 'judge', name: '断罪狩人', nameEn: 'Judge' },
+  { id: 'king-in-yellow', name: '黄衣の王', nameEn: 'King in Yellow' },
+  { id: 'geisha', name: '芸者', nameEn: 'Geisha' },
+  { id: 'soul-weaver', name: '結魂者', nameEn: 'Soul Weaver' },
+  { id: 'white-wu-chang', name: '白黒無常', nameEn: 'White Wu Chang' },
+  { id: 'photographer', name: '写真家', nameEn: 'Photographer' },
+  { id: 'mad-eyes', name: '狂眼', nameEn: 'Mad Eyes' },
+  { id: 'dream-witch', name: '夢の魔女', nameEn: 'Dream Witch' },
+  { id: 'lizard', name: '魔トカゲ', nameEn: 'Lizard' },
+  { id: 'crybaby', name: '泣き虫', nameEn: 'Crybaby' },
+  { id: 'bloody-queen', name: '血の女王', nameEn: 'Bloody Queen' },
+  { id: 'guard-26', name: 'ガードNo.26', nameEn: 'Guard 26' },
+  { id: 'apostle', name: '「使徒」', nameEn: 'Apostle' },
+  { id: 'violinist', name: 'ヴァイオリニスト', nameEn: 'Violinist' },
+  { id: 'sculptor', name: '彫刻師', nameEn: 'Sculptor' },
+  { id: 'undead', name: '「アンデッド」破輪', nameEn: 'Undead' },
+  { id: 'fisherman', name: '漁師', nameEn: 'Fisherman' },
+  { id: 'wax-artist', name: '蝋人形師', nameEn: 'Wax Artist' },
+  { id: 'nightmare', name: '「悪夢」', nameEn: 'Nightmare' },
+  { id: 'clerk', name: '書記官', nameEn: 'Clerk' },
+  { id: 'hermit', name: '隠者', nameEn: 'Hermit' },
+  { id: 'night-watch', name: '夜の番人', nameEn: 'Night Watch' },
+  { id: 'opera-singer', name: 'オペラ歌手', nameEn: 'Opera Singer' },
+  { id: 'fools-gold', name: '「フールズ・ゴールド」', nameEn: 'Fool\'s Gold' },
+  { id: 'shadow', name: '時空の影', nameEn: 'Shadow' },
+  { id: 'lame-sheep', name: '「足萎えの羊」', nameEn: 'Lame Sheep' },
+  { id: 'flaballoo', name: '「フラバルー」', nameEn: 'Flaballoo' },
+  { id: 'grocer', name: '雑貨商', nameEn: 'Grocer' }
 ];
 
 /**
  * キャラクターIDから名前を取得
  * @param {string} characterId 
+ * @param {string} type - 'survivor' or 'hunter'
  * @returns {string}
  */
-function getCharacterName(characterId) {
-  const character = SURVIVOR_CHARACTERS.find(char => char.id === characterId);
+function getCharacterName(characterId, type = 'survivor') {
+  const characters = type === 'hunter' ? HUNTER_CHARACTERS : SURVIVOR_CHARACTERS;
+  const character = characters.find(char => char.id === characterId);
   return character ? character.name : characterId;
 }
 
 /**
  * キャラクターIDから英語名を取得
  * @param {string} characterId 
+ * @param {string} type - 'survivor' or 'hunter'
  * @returns {string}
  */
-function getCharacterNameEn(characterId) {
-  const character = SURVIVOR_CHARACTERS.find(char => char.id === characterId);
+function getCharacterNameEn(characterId, type = 'survivor') {
+  const characters = type === 'hunter' ? HUNTER_CHARACTERS : SURVIVOR_CHARACTERS;
+  const character = characters.find(char => char.id === characterId);
   return character ? character.nameEn : characterId;
 }
 
