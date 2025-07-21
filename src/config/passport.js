@@ -3,12 +3,16 @@ const DiscordStrategy = require('passport-discord').Strategy;
 const { getDb } = require('./firebase');
 const admin = require('firebase-admin');
 
-passport.use(new DiscordStrategy({
-  clientID: process.env.DISCORD_CLIENT_ID,
-  clientSecret: process.env.DISCORD_CLIENT_SECRET,
-  callbackURL: process.env.DISCORD_CALLBACK_URL,
-  scope: ['identify', 'guilds']
-}, async (accessToken, refreshToken, profile, done) => {
+// Skip Discord strategy initialization if credentials are not provided or are mock values
+if (process.env.DISCORD_CLIENT_ID && 
+    process.env.DISCORD_CLIENT_SECRET && 
+    process.env.DISCORD_CLIENT_ID !== 'mock_client_id') {
+  passport.use(new DiscordStrategy({
+    clientID: process.env.DISCORD_CLIENT_ID,
+    clientSecret: process.env.DISCORD_CLIENT_SECRET,
+    callbackURL: process.env.DISCORD_CALLBACK_URL,
+    scope: ['identify', 'guilds']
+  }, async (accessToken, refreshToken, profile, done) => {
   try {
     const db = getDb();
     const userRef = db.collection('users').doc(profile.id);
@@ -38,6 +42,9 @@ passport.use(new DiscordStrategy({
     return done(error, null);
   }
 }));
+} else {
+  console.log('Discord OAuth not configured - running in development mode without OAuth');
+}
 
 passport.serializeUser((user, done) => {
   done(null, user.discordId);

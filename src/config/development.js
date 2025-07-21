@@ -11,7 +11,7 @@ const initDevelopmentData = async (db) => {
     const settingsDoc = await db.collection('settings').doc('general').get();
     if (!settingsDoc.exists) {
       await db.collection('settings').doc('general').set({
-        adminUserIds: ['1316250671401668710'], // 開発用のDiscord ID (実際のIDに変更してください)
+        adminUserIds: ['1316250671401668710', 'dev_user_123'], // 開発用のDiscord ID (実際のIDに変更してください)
         allowedGuildId: '1383070923070115850', // 開発用のサーバーID (実際のIDに変更してください)
         createdAt: new Date(),
         updatedAt: new Date()
