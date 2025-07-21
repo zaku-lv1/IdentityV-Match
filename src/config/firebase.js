@@ -71,7 +71,11 @@ const createMockFirestore = () => {
           docs.push({
             id,
             data: () => data,
-            exists: true
+            exists: true,
+            ref: {
+              id: id,
+              parent: { id: collectionName }
+            }
           });
         }
         
@@ -137,7 +141,14 @@ const createMockFirestore = () => {
         return {
           exists: !!data,
           data: () => data,
-          id: id
+          id: id,
+          ref: {
+            id: id,
+            parent: { id: collectionName },
+            delete: async () => {
+              mockData[collectionName].delete(id);
+            }
+          }
         };
       },
       set: async (data, options = {}) => {
@@ -154,6 +165,10 @@ const createMockFirestore = () => {
       },
       delete: async () => {
         mockData[collectionName].delete(id);
+      },
+      ref: {
+        id: id,
+        parent: { id: collectionName }
       }
     }),
     add: async (data) => {
@@ -173,7 +188,11 @@ const createMockFirestore = () => {
         docs.push({
           id,
           data: () => data,
-          exists: true
+          exists: true,
+          ref: {
+            id: id,
+            parent: { id: collectionName }
+          }
         });
       }
       return { docs, size: docs.length };
@@ -181,7 +200,61 @@ const createMockFirestore = () => {
   });
 
   return {
-    collection: mockCollection
+    collection: mockCollection,
+    batch: () => {
+      const operations = [];
+      return {
+        delete: (ref) => {
+          operations.push({ type: 'delete', ref });
+        },
+        set: (ref, data, options = {}) => {
+          operations.push({ type: 'set', ref, data, options });
+        },
+        update: (ref, data) => {
+          operations.push({ type: 'update', ref, data });
+        },
+        commit: async () => {
+          for (const op of operations) {
+            switch (op.type) {
+              case 'delete':
+                // Extract collection and document ID from the ref
+                if (op.ref && op.ref.parent && op.ref.id) {
+                  const collectionName = op.ref.parent.id;
+                  const docId = op.ref.id;
+                  if (mockData[collectionName]) {
+                    mockData[collectionName].delete(docId);
+                  }
+                }
+                break;
+              case 'set':
+                if (op.ref && op.ref.parent && op.ref.id) {
+                  const collectionName = op.ref.parent.id;
+                  const docId = op.ref.id;
+                  if (mockData[collectionName]) {
+                    if (op.options.merge) {
+                      const existing = mockData[collectionName].get(docId) || {};
+                      mockData[collectionName].set(docId, { ...existing, ...op.data });
+                    } else {
+                      mockData[collectionName].set(docId, op.data);
+                    }
+                  }
+                }
+                break;
+              case 'update':
+                if (op.ref && op.ref.parent && op.ref.id) {
+                  const collectionName = op.ref.parent.id;
+                  const docId = op.ref.id;
+                  if (mockData[collectionName]) {
+                    const existing = mockData[collectionName].get(docId) || {};
+                    mockData[collectionName].set(docId, { ...existing, ...op.data });
+                  }
+                }
+                break;
+            }
+          }
+        }
+      };
+    }
   };
 };
 
