@@ -399,6 +399,154 @@
             color: #f39c12;
             margin-top: 1rem;
         }
+        
+        /* Modal Styles for Team Editing */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: #2c3e50;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #f39c12;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: #ecf0f1;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(231, 76, 60, 0.2);
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #ecf0f1;
+            font-weight: bold;
+        }
+        
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ecf0f1;
+            font-size: 1rem;
+        }
+        
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .member-selection {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .member-option {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: background 0.3s;
+        }
+        
+        .member-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .member-option input[type="checkbox"] {
+            margin-right: 1rem;
+            transform: scale(1.2);
+        }
+        
+        .member-option label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        .member-option .member-name {
+            font-weight: bold;
+            color: #ecf0f1;
+        }
+        
+        .member-option .member-ranks {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .member-count {
+            margin-top: 1rem;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-actions .btn {
+            padding: 0.8rem 1.5rem;
+        }
 
         .btn-sm {
             padding: 0.5rem 1rem;
@@ -567,8 +715,160 @@
         }
 
         function editTeam(teamId) {
-            // チーム編集機能は今後実装予定
-            alert('チーム編集機能は準備中です');
+            // Get team data and show edit modal
+            showEditTeamModal(teamId);
+        }
+        
+        async function showEditTeamModal(teamId) {
+            try {
+                // Get team data
+                const response = await fetch(`/api/teams/${teamId}/members`);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    alert('Error: ' + result.error);
+                    return;
+                }
+                
+                // Get all tournament participants for selection
+                const tournamentEntries = <%-JSON.stringify(entries)%>;
+                
+                // Show modal
+                openTeamEditModal(result.teamId, result.teamName, result.members, tournamentEntries);
+            } catch (error) {
+                alert('チームデータの取得中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+        
+        function openTeamEditModal(teamId, teamName, currentMembers, allEntries) {
+            // Create modal HTML
+            const modalHtml = `
+                <div id="editTeamModal" class="modal-overlay">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>🎯 チーム編集</h3>
+                            <button onclick="closeEditTeamModal()" class="close-btn">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editTeamForm">
+                                <input type="hidden" id="editTeamId" value="${teamId}">
+                                <div class="form-group">
+                                    <label for="editTeamName">チーム名</label>
+                                    <input type="text" id="editTeamName" value="${teamName}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>メンバー選択 (4-7人)</label>
+                                    <div class="member-selection">
+                                        ${allEntries.map(entry => `
+                                            <div class="member-option">
+                                                <input type="checkbox" 
+                                                       id="member_${entry.discordId}" 
+                                                       value="${entry.discordId}"
+                                                       ${currentMembers.some(m => m.discordId === entry.discordId) ? 'checked' : ''}>
+                                                <label for="member_${entry.discordId}">
+                                                    <span class="member-name">${entry.username}</span>
+                                                    <span class="member-ranks">
+                                                        <span class="rank-badge hunter">H: ${entry.hunterRank}段</span>
+                                                        <span class="rank-badge survivor">S: ${entry.survivorRank}段</span>
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <div class="member-count">選択中: <span id="selectedCount">0</span>人</div>
+                                </div>
+                                <div class="modal-actions">
+                                    <button type="button" onclick="closeEditTeamModal()" class="btn btn-secondary">キャンセル</button>
+                                    <button type="submit" class="btn btn-primary">保存</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Add event listeners
+            setupTeamEditModal();
+        }
+        
+        function setupTeamEditModal() {
+            const checkboxes = document.querySelectorAll('#editTeamModal input[type="checkbox"]');
+            const countSpan = document.getElementById('selectedCount');
+            const form = document.getElementById('editTeamForm');
+            
+            // Update count when checkboxes change
+            function updateCount() {
+                const checked = document.querySelectorAll('#editTeamModal input[type="checkbox"]:checked');
+                countSpan.textContent = checked.length;
+                countSpan.style.color = checked.length >= 4 && checked.length <= 7 ? '#27ae60' : '#e74c3c';
+            }
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateCount);
+            });
+            
+            // Initial count
+            updateCount();
+            
+            // Form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await saveTeamEdit();
+            });
+        }
+        
+        async function saveTeamEdit() {
+            const teamId = document.getElementById('editTeamId').value;
+            const teamName = document.getElementById('editTeamName').value;
+            const checkedBoxes = document.querySelectorAll('#editTeamModal input[type="checkbox"]:checked');
+            const memberIds = Array.from(checkedBoxes).map(cb => cb.value);
+            
+            if (!teamName.trim()) {
+                alert('チーム名を入力してください');
+                return;
+            }
+            
+            if (memberIds.length < 4 || memberIds.length > 7) {
+                alert('チームメンバーは4-7人を選択してください');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/tournaments/<%= tournament.id %>/teams/${teamId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: teamName,
+                        memberIds: memberIds
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('チームを更新しました');
+                    closeEditTeamModal();
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('チーム更新中にエラーが発生しました');
+                console.error(error);
+            }
+        }
+        
+        function closeEditTeamModal() {
+            const modal = document.getElementById('editTeamModal');
+            if (modal) {
+                modal.remove();
+            }
         }
 
         function exportParticipants() {
