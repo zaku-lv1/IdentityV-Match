@@ -55,6 +55,22 @@
                         </div>
                     </div>
 
+                    <!-- Team Selection Section -->
+                    <div class="form-row" id="teamSelectionRow" style="display: none;">
+                        <div class="form-group">
+                            <label for="hunterTeamSelect">ハンターチーム選択</label>
+                            <select id="hunterTeamSelect" name="hunterTeamSelect">
+                                <option value="">チームを選択してください</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="survivorTeamSelect">サバイバーチーム選択</label>
+                            <select id="survivorTeamSelect" name="survivorTeamSelect">
+                                <option value="">チームを選択してください</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="matchTitle">試合名</label>
@@ -274,6 +290,27 @@
             gap: 1rem;
             margin-bottom: 1rem;
         }
+        
+        #teamSelectionRow {
+            background: rgba(52, 152, 219, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 2px solid rgba(52, 152, 219, 0.3);
+        }
+        
+        #teamSelectionRow .form-group label {
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        #teamSelectionRow select {
+            border-color: #3498db;
+        }
+        
+        #teamSelectionRow select:focus {
+            border-color: #2980b9;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
 
         .results-table {
             overflow-x: auto;
@@ -462,6 +499,199 @@
     </style>
 
     <script>
+        // Dynamic team selection functionality
+        let tournamentTeams = [];
+        
+        // Event listener for tournament selection
+        document.getElementById('tournamentId').addEventListener('change', async function() {
+            const tournamentId = this.value;
+            const teamSelectionRow = document.getElementById('teamSelectionRow');
+            const hunterTeamSelect = document.getElementById('hunterTeamSelect');
+            const survivorTeamSelect = document.getElementById('survivorTeamSelect');
+            
+            if (tournamentId) {
+                try {
+                    // Fetch teams for selected tournament
+                    const response = await fetch(`/api/tournaments/${tournamentId}/teams`);
+                    const result = await response.json();
+                    
+                    if (response.ok && result.teams) {
+                        tournamentTeams = result.teams;
+                        
+                        // Clear and populate team dropdowns
+                        hunterTeamSelect.innerHTML = '<option value="">チームを選択してください</option>';
+                        survivorTeamSelect.innerHTML = '<option value="">チームを選択してください</option>';
+                        
+                        result.teams.forEach(team => {
+                            const option1 = new Option(`${team.name} (${team.members.length}人)`, team.id);
+                            const option2 = new Option(`${team.name} (${team.members.length}人)`, team.id);
+                            hunterTeamSelect.add(option1);
+                            survivorTeamSelect.add(option2);
+                        });
+                        
+                        // Show team selection if teams exist
+                        if (result.teams.length > 0) {
+                            teamSelectionRow.style.display = 'flex';
+                        } else {
+                            teamSelectionRow.style.display = 'none';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching teams:', error);
+                    teamSelectionRow.style.display = 'none';
+                }
+            } else {
+                teamSelectionRow.style.display = 'none';
+                tournamentTeams = [];
+            }
+            
+            // Clear player selections when tournament changes
+            clearPlayerSelections();
+        });
+        
+        // Event listener for hunter team selection
+        document.getElementById('hunterTeamSelect').addEventListener('change', function() {
+            const teamId = this.value;
+            if (teamId) {
+                populatePlayerDropdown('hunterPlayer', teamId, 'hunter');
+            } else {
+                clearPlayerDropdown('hunterPlayer');
+            }
+        });
+        
+        // Event listener for survivor team selection
+        document.getElementById('survivorTeamSelect').addEventListener('change', function() {
+            const teamId = this.value;
+            if (teamId) {
+                populateSurvivorDropdowns(teamId);
+            } else {
+                clearSurvivorDropdowns();
+            }
+        });
+        
+        // Event listener for series selection to auto-generate match title
+        document.getElementById('seriesId').addEventListener('change', function() {
+            const seriesId = this.value;
+            const matchTitle = document.getElementById('matchTitle');
+            
+            if (seriesId) {
+                // Auto-generate match title based on existing games in series
+                generateSeriesMatchTitle(seriesId);
+                matchTitle.readOnly = true;
+                matchTitle.style.backgroundColor = '#f8f9fa';
+            } else {
+                matchTitle.readOnly = false;
+                matchTitle.style.backgroundColor = '';
+                matchTitle.value = '';
+            }
+        });
+        
+        async function generateSeriesMatchTitle(seriesId) {
+            try {
+                // Get series data to determine current game number
+                const response = await fetch(`/admin/series/${seriesId}`);
+                if (response.ok) {
+                    // For now, we'll use a simple counter. In a real implementation,
+                    // we'd parse the series data to determine the next game number
+                    const gameNumber = Math.floor(Math.random() * 3) + 1; // Placeholder
+                    document.getElementById('matchTitle').value = `${gameNumber}回戦`;
+                }
+            } catch (error) {
+                console.error('Error generating match title:', error);
+            }
+        }
+        
+        function populatePlayerDropdown(fieldId, teamId, role) {
+            const team = tournamentTeams.find(t => t.id === teamId);
+            if (!team) return;
+            
+            const field = document.getElementById(fieldId);
+            const fieldContainer = field.parentElement;
+            
+            // Replace text input with dropdown
+            const dropdown = document.createElement('select');
+            dropdown.id = fieldId;
+            dropdown.name = fieldId;
+            dropdown.required = true;
+            dropdown.innerHTML = '<option value="">プレイヤーを選択してください</option>';
+            
+            team.members.forEach(member => {
+                const option = new Option(
+                    `${member.username} (H:${member.hunterRank}段 S:${member.survivorRank}段)`,
+                    member.username
+                );
+                dropdown.add(option);
+            });
+            
+            fieldContainer.replaceChild(dropdown, field);
+        }
+        
+        function populateSurvivorDropdowns(teamId) {
+            const team = tournamentTeams.find(t => t.id === teamId);
+            if (!team) return;
+            
+            for (let i = 1; i <= 4; i++) {
+                const fieldId = `survivorPlayer${i}`;
+                const field = document.getElementById(fieldId);
+                const fieldContainer = field.parentElement;
+                
+                // Replace text input with dropdown
+                const dropdown = document.createElement('select');
+                dropdown.id = fieldId;
+                dropdown.name = fieldId;
+                dropdown.innerHTML = '<option value="">プレイヤーを選択してください</option>';
+                
+                team.members.forEach(member => {
+                    const option = new Option(
+                        `${member.username} (H:${member.hunterRank}段 S:${member.survivorRank}段)`,
+                        member.username
+                    );
+                    dropdown.add(option);
+                });
+                
+                fieldContainer.replaceChild(dropdown, field);
+            }
+        }
+        
+        function clearPlayerSelections() {
+            // Clear hunter player
+            clearPlayerDropdown('hunterPlayer');
+            // Clear survivor players
+            clearSurvivorDropdowns();
+        }
+        
+        function clearPlayerDropdown(fieldId) {
+            const field = document.getElementById(fieldId);
+            if (field && field.tagName === 'SELECT') {
+                const fieldContainer = field.parentElement;
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.id = fieldId;
+                textInput.name = fieldId;
+                textInput.required = true;
+                textInput.placeholder = fieldId === 'hunterPlayer' ? 'ハンターのプレイヤー名' : 'プレイヤー名';
+                
+                fieldContainer.replaceChild(textInput, field);
+            }
+        }
+        
+        function clearSurvivorDropdowns() {
+            for (let i = 1; i <= 4; i++) {
+                const fieldId = `survivorPlayer${i}`;
+                const field = document.getElementById(fieldId);
+                if (field && field.tagName === 'SELECT') {
+                    const fieldContainer = field.parentElement;
+                    const textInput = document.createElement('input');
+                    textInput.type = 'text';
+                    textInput.id = fieldId;
+                    textInput.name = fieldId;
+                    textInput.placeholder = 'プレイヤー名';
+                    
+                    fieldContainer.replaceChild(textInput, field);
+                }
+            }
+        }
+        
         function calculatePoints() {
             const eliminated = parseInt(document.getElementById('eliminatedCount').value) || 0;
             const escaped = parseInt(document.getElementById('escapedCount').value) || 0;
