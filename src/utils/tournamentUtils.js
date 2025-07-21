@@ -135,10 +135,34 @@ function getTimeRemaining(deadline) {
   }
 }
 
+/**
+ * Validate if team formation is allowed based on participant count
+ * @param {number} participantCount - Number of participants
+ * @returns {Object} - { allowed: boolean, reason: string }
+ */
+function validateTeamFormation(participantCount) {
+  if (participantCount < 4) {
+    return {
+      allowed: false,
+      reason: 'チーム作成には最低4人の参加者が必要です'
+    };
+  }
+  
+  if (participantCount > 7) {
+    return {
+      allowed: false,
+      reason: '編成は最大7人までです。8人未満でないとゲームが成立しません'
+    };
+  }
+  
+  return { allowed: true, reason: null };
+}
+
 module.exports = {
   isEntryDeadlinePassed,
   getUpdatedTournamentStatus,
   isEntryAllowed,
   formatJapaneseDate,
-  getTimeRemaining
+  getTimeRemaining,
+  validateTeamFormation
 };
