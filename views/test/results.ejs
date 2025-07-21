@@ -51,7 +51,7 @@
                                     <div class="player-info">
                                         <span class="player-name"><%= result.hunterPlayer %></span>
                                         <% if (result.hunterCharacter) { %>
-                                            <span class="character-badge hunter-char">(<%= getCharacterName(result.hunterCharacter) %>)</span>
+                                            <span class="character-badge hunter-char">(<%= getCharacterName(result.hunterCharacter, 'hunter') %>)</span>
                                         <% } %>
                                     </div>
                                     <% if (result.hunterTeam) { %>
