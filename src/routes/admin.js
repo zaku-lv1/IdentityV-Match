@@ -1,5 +1,9 @@
 const express = require('express');
 const { getDb } = require('../config/firebase');
+const { 
+  getUpdatedTournamentStatus,
+  formatJapaneseDate 
+} = require('../utils/tournamentUtils');
 const router = express.Router();
 
 // Admin dashboard
@@ -125,6 +129,16 @@ router.get('/tournaments/:id', requireAdmin, async (req, res) => {
     
     const tournament = { id: tournamentDoc.id, ...tournamentDoc.data() };
     
+    // Update tournament status based on deadline
+    const updatedStatus = getUpdatedTournamentStatus(tournament);
+    if (updatedStatus !== tournament.status) {
+      await db.collection('tournaments').doc(req.params.id).update({ 
+        status: updatedStatus,
+        updatedAt: new Date()
+      });
+      tournament.status = updatedStatus;
+    }
+    
     // Get entries
     const entriesSnapshot = await db.collection('entries')
       .where('tournamentId', '==', req.params.id)
@@ -165,7 +179,16 @@ router.post('/tournaments/:id/teams/random', requireAdmin, async (req, res) => {
     
     // Get tournament and entries
     const tournamentDoc = await db.collection('tournaments').doc(tournamentId).get();
+    if (!tournamentDoc.exists) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+    
     const tournament = tournamentDoc.data();
+    
+    // Only allow team creation for closed or ongoing tournaments
+    if (tournament.status === 'open') {
+      return res.status(400).json({ error: 'エントリー期限を締切ってからチームを作成してください' });
+    }
     
     const entriesSnapshot = await db.collection('entries')
       .where('tournamentId', '==', tournamentId)
@@ -173,6 +196,21 @@ router.post('/tournaments/:id/teams/random', requireAdmin, async (req, res) => {
       .get();
     
     const entries = entriesSnapshot.docs.map(doc => doc.data());
+    
+    if (entries.length < 4) {
+      return res.status(400).json({ error: 'チーム作成には最低4人の参加者が必要です' });
+    }
+    
+    // Delete existing teams first
+    const existingTeamsSnapshot = await db.collection('teams')
+      .where('tournamentId', '==', tournamentId)
+      .get();
+    
+    const deleteBatch = db.batch();
+    existingTeamsSnapshot.docs.forEach(doc => {
+      deleteBatch.delete(doc.ref);
+    });
+    await deleteBatch.commit();
     
     // Shuffle entries randomly
     const shuffledEntries = entries.sort(() => Math.random() - 0.5);
@@ -187,14 +225,22 @@ router.post('/tournaments/:id/teams/random', requireAdmin, async (req, res) => {
         tournamentId,
         name: teamName,
         members: teamMembers,
-        createdAt: new Date()
+        createdAt: new Date(),
+        createdBy: req.user.discordId
       };
       
       const teamRef = await db.collection('teams').add(teamData);
       teams.push({ id: teamRef.id, ...teamData });
     }
     
-    res.json({ success: true, teams });
+    console.log(`Created ${teams.length} teams for tournament ${tournamentId}`);
+    
+    res.json({ 
+      success: true, 
+      teams,
+      teamsCreated: teams.length,
+      message: `${teams.length}個のチームを作成しました`
+    });
   } catch (error) {
     console.error('Error creating random teams:', error);
     res.status(500).json({ error: 'Failed to create teams' });
@@ -472,6 +518,79 @@ function calculateSeriesWinner(seriesType, games) {
   
   return { seriesWinner: null, seriesComplete: false };
 }
+
+// Update tournament status
+router.put('/tournaments/:id/status', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const { status } = req.body;
+    
+    if (!['open', 'closed', 'ongoing', 'finished'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    await db.collection('tournaments').doc(req.params.id).update({
+      status,
+      updatedAt: new Date()
+    });
+    
+    res.json({ success: true, message: 'Status updated successfully' });
+  } catch (error) {
+    console.error('Error updating tournament status:', error);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+// Remove participant
+router.delete('/tournaments/:id/participants/:participantId', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    
+    await db.collection('entries').doc(req.params.participantId).delete();
+    
+    res.json({ success: true, message: 'Participant removed successfully' });
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    res.status(500).json({ error: 'Failed to remove participant' });
+  }
+});
+
+// Clear all teams
+router.delete('/tournaments/:id/teams', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const tournamentId = req.params.id;
+    
+    const teamsSnapshot = await db.collection('teams')
+      .where('tournamentId', '==', tournamentId)
+      .get();
+    
+    const batch = db.batch();
+    teamsSnapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    
+    res.json({ success: true, message: 'All teams cleared successfully' });
+  } catch (error) {
+    console.error('Error clearing teams:', error);
+    res.status(500).json({ error: 'Failed to clear teams' });
+  }
+});
+
+// Delete specific team
+router.delete('/tournaments/:id/teams/:teamId', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    
+    await db.collection('teams').doc(req.params.teamId).delete();
+    
+    res.json({ success: true, message: 'Team deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting team:', error);
+    res.status(500).json({ error: 'Failed to delete team' });
+  }
+});
 
 router.post('/settings', requireAdmin, async (req, res) => {
   try {
