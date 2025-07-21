@@ -390,6 +390,79 @@ const initDevelopmentData = async (db) => {
       notes: '決勝戦進行中。最強チームが第1試合を制した。'
     });
     
+    // サンプルチームを作成
+    const sampleTeams = [
+      {
+        id: 'team-sample-1',
+        data: {
+          tournamentId: 'sample-tournament',
+          name: 'チームA',
+          members: [
+            { discordId: 'sample-user-1', username: 'TopPlayer', hunterRank: 8, survivorRank: 8 },
+            { discordId: 'sample-user-2', username: 'SkillfulPlayer', hunterRank: 7, survivorRank: 6 },
+            { discordId: 'team-member-3', username: 'ProHunter', hunterRank: 6, survivorRank: 7 },
+            { discordId: 'team-member-4', username: 'EliteSurvivor', hunterRank: 5, survivorRank: 8 },
+            { discordId: 'team-member-5', username: 'BalancedPlayer', hunterRank: 6, survivorRank: 6 }
+          ],
+          createdAt: new Date(),
+          createdBy: '123456789012345678'
+        }
+      },
+      {
+        id: 'team-sample-2',
+        data: {
+          tournamentId: 'sample-tournament',
+          name: 'チームB',
+          members: [
+            { discordId: 'team-b-1', username: 'TeamB_Captain', hunterRank: 7, survivorRank: 7 },
+            { discordId: 'team-b-2', username: 'TeamB_Hunter', hunterRank: 8, survivorRank: 5 },
+            { discordId: 'team-b-3', username: 'TeamB_Survivor1', hunterRank: 5, survivorRank: 8 },
+            { discordId: 'team-b-4', username: 'TeamB_Survivor2', hunterRank: 4, survivorRank: 7 },
+            { discordId: 'team-b-5', username: 'TeamB_Flex', hunterRank: 6, survivorRank: 6 }
+          ],
+          createdAt: new Date(),
+          createdBy: '123456789012345678'
+        }
+      },
+      {
+        id: 'team-competitive-1',
+        data: {
+          tournamentId: 'competitive-tournament',
+          name: '最強チーム',
+          members: [
+            { discordId: 'comp-1', username: 'Legend_Hunter', hunterRank: 8, survivorRank: 8 },
+            { discordId: 'comp-2', username: 'Master_Survivor', hunterRank: 7, survivorRank: 8 },
+            { discordId: 'comp-3', username: 'Pro_Player', hunterRank: 8, survivorRank: 7 },
+            { discordId: 'comp-4', username: 'Elite_Member', hunterRank: 8, survivorRank: 8 }
+          ],
+          createdAt: new Date(),
+          createdBy: '123456789012345678'
+        }
+      },
+      {
+        id: 'team-competitive-2',
+        data: {
+          tournamentId: 'competitive-tournament',
+          name: 'エリートチーム',
+          members: [
+            { discordId: 'elite-1', username: 'Champion_Player', hunterRank: 8, survivorRank: 7 },
+            { discordId: 'elite-2', username: 'Expert_Hunter', hunterRank: 8, survivorRank: 6 },
+            { discordId: 'elite-3', username: 'Ace_Survivor', hunterRank: 6, survivorRank: 8 },
+            { discordId: 'elite-4', username: 'Tactical_Player', hunterRank: 7, survivorRank: 7 }
+          ],
+          createdAt: new Date(),
+          createdBy: '123456789012345678'
+        }
+      }
+    ];
+    
+    for (const team of sampleTeams) {
+      const teamDoc = await db.collection('teams').doc(team.id).get();
+      if (!teamDoc.exists) {
+        await db.collection('teams').doc(team.id).set(team.data);
+      }
+    }
+    
     console.log('Development data setup completed successfully');
   } catch (error) {
     console.error('Error setting up development data:', error);

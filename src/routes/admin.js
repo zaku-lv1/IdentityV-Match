@@ -656,6 +656,29 @@ router.post('/settings', requireAdmin, async (req, res) => {
   }
 });
 
+// API endpoint to get teams for a tournament (for dynamic team member selection)
+router.get('/api/tournaments/:id/teams', async (req, res) => {
+  try {
+    const db = getDb();
+    const tournamentId = req.params.id;
+    
+    // Get teams for the tournament
+    const teamsSnapshot = await db.collection('teams')
+      .where('tournamentId', '==', tournamentId)
+      .get();
+    
+    const teams = teamsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    res.json({ teams });
+  } catch (error) {
+    console.error('Error fetching teams:', error);
+    res.status(500).json({ error: 'Failed to fetch teams' });
+  }
+});
+
 // Middleware to require admin privileges
 async function requireAdmin(req, res, next) {
   if (!req.isAuthenticated()) {

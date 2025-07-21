@@ -47,7 +47,7 @@ router.post('/match-results', async (req, res) => {
       tournamentId,
       seriesId,
       matchTitle,
-      hunterPlayer,
+      hunterPlayerInput,
       hunterCharacter,
       survivorPlayer1,
       survivorCharacter1,
@@ -62,6 +62,9 @@ router.post('/match-results', async (req, res) => {
       hunterTeam,
       notes
     } = req.body;
+    
+    // Get hunter player name from the input field (synced by JavaScript)
+    const hunterPlayer = hunterPlayerInput;
 
     // Build survivor players array with character information
     const survivorPlayers = [];
