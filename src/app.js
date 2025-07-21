@@ -13,7 +13,7 @@ const authRoutes = require('./routes/auth');
 const tournamentRoutes = require('./routes/tournaments');
 const adminRoutes = require('./routes/admin');
 const testRoutes = require('./routes/test');
-const { initializeFirebase, getDb } = require('./config/firebase');
+const { initializeDatabase, getDb, getDatabaseType } = require('./config/firebase');
 const { initDevelopmentData, showDevelopmentStats } = require('./config/development');
 
 const app = express();
@@ -168,9 +168,99 @@ if (process.env.NODE_ENV === 'development') {
       
       res.json({
         environment: 'development',
+        database_type: getDatabaseType(),
         database_stats: stats,
         timestamp: new Date().toISOString()
       });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Database management endpoint
+  app.get('/dev/database', async (req, res) => {
+    try {
+      const db = getDb();
+      
+      // Check if local database has management features
+      const hasManagement = typeof db.getStats === 'function';
+      
+      const stats = hasManagement ? db.getStats() : 'Management not available';
+      const validationIssues = hasManagement ? db.validateDatabase() : [];
+      
+      res.json({
+        message: 'Database management interface',
+        database_type: getDatabaseType(),
+        statistics: stats,
+        validation_issues: validationIssues,
+        available_actions: hasManagement ? [
+          'GET /dev/database/backup - Create full backup',
+          'POST /dev/database/validate - Run validation',
+          'POST /dev/database/clear - Clear all data (dev only)'
+        ] : ['Limited management available for this database type'],
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create backup endpoint
+  app.get('/dev/database/backup', async (req, res) => {
+    try {
+      const db = getDb();
+      
+      if (typeof db.createFullBackup === 'function') {
+        const backupFile = db.createFullBackup();
+        res.json({
+          message: 'Backup created successfully',
+          backup_file: backupFile,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(400).json({ error: 'Backup not supported for this database type' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Validate database endpoint
+  app.post('/dev/database/validate', async (req, res) => {
+    try {
+      const db = getDb();
+      
+      if (typeof db.validateDatabase === 'function') {
+        const issues = db.validateDatabase();
+        res.json({
+          message: 'Database validation completed',
+          issues_found: issues.length,
+          issues: issues,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(400).json({ error: 'Validation not supported for this database type' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Clear database endpoint (development only)
+  app.post('/dev/database/clear', async (req, res) => {
+    try {
+      const db = getDb();
+      
+      if (typeof db.clearAllData === 'function') {
+        db.clearAllData();
+        res.json({
+          message: 'All data cleared successfully',
+          warning: 'This action cannot be undone',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(400).json({ error: 'Clear operation not supported for this database type' });
+      }
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -221,10 +311,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Initialize Firebase and start server
+// Initialize database and start server
 const startServer = async () => {
   try {
-    initializeFirebase();
+    initializeDatabase();
     
     // 開発環境の場合、初期データを設定
     if (process.env.NODE_ENV === 'development') {
@@ -241,11 +331,13 @@ const startServer = async () => {
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🗃️ Database: ${getDatabaseType()}`);
       console.log(`🔗 URL: http://localhost:${PORT}`);
       console.log(`💻 Health check: http://localhost:${PORT}/health`);
       
       if (process.env.NODE_ENV === 'development') {
         console.log(`📊 Dev stats: http://localhost:${PORT}/dev/stats`);
+        console.log(`🛠️ Database management: http://localhost:${PORT}/dev/database`);
       }
     });
   } catch (error) {

@@ -1,6 +1,9 @@
 .env
 node_modules
-src/config/firebase-service-account.json
+firebase-service-account.json
 sessions/
-data/
+# Exclude data files but include in development for sample data
+data/*.json
+# Always exclude backups from version control
+data/backups/
 *.log

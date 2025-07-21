@@ -43,22 +43,24 @@ IdentityV-Matchは、第五人格のプレイヤーが対戦を管理し、ト�
 ### バックエンド
 - **ランタイム**: Node.js
 - **フレームワーク**: Express.js
-- **データベース**: Firebase Firestore
+- **データベース**: ローカルファイルベース（推奨）/ Firebase Firestore（オプション）
 - **認証**: Passport.js (Discord OAuth)
 - **セッション管理**: ファイルベース/Firestoreストア
 
 ### インフラ・デプロイ
+- **データストレージ**: ローカルJSONファイル（デフォルト）/ Firebase Firestore（オプション）
 - **開発環境**: nodemon
-- **本番環境**: Firebase Hosting対応
-- **データ永続化**: Firestore / 開発用ファイルストレージ
+- **本番環境**: Node.js / Firebase Hosting対応
+- **データ永続化**: ローカルファイル / Firestore
 - **セキュリティ**: Helmet.js、レート制限
+- **バックアップ**: 自動バックアップ機能内蔵
 
 ## 📦 インストール・セットアップ
 
 ### 前提条件
 - Node.js 16.x 以上
 - npm または yarn
-- Firebase プロジェクト（本番環境）
+- Firebase プロジェクト（Firebase使用時のみ - オプション）
 - Discord アプリケーション（OAuth用）
 
 ### 1. リポジトリのクローン
@@ -91,13 +93,24 @@ DISCORD_CLIENT_ID=your-discord-client-id
 DISCORD_CLIENT_SECRET=your-discord-client-secret
 DISCORD_CALLBACK_URL=http://localhost:3000/auth/discord/callback
 
-# Firebase設定（本番環境）
-FIREBASE_PROJECT_ID=your-firebase-project-id
-USE_FIRESTORE_SESSIONS=true
+# データベース設定（ローカルファイルベース - 推奨）
+# Firebase を使用する場合のみ true に設定
+USE_FIREBASE=false
+
+# Firebase設定（USE_FIREBASE=true の場合のみ必要）
+# FIREBASE_PROJECT_ID=your-firebase-project-id
+# USE_FIRESTORE_SESSIONS=true
 ```
 
-### 4. Firebase設定（本番環境）
-Firebase サービスアカウントキーを`firebase-service-account.json`として保存：
+### 4. データベース設定
+
+**推奨: ローカルファイルベースデータベース（デフォルト）**
+
+追加設定は不要です。アプリケーションが自動的に `data/` ディレクトリを作成し、JSONファイルとしてデータを保存します。
+
+**オプション: Firebase設定（本番環境で外部データベースが必要な場合）**
+
+Firebase を使用する場合は、`.env` ファイルで `USE_FIREBASE=true` を設定し、Firebase サービスアカウントキーを準備してください：
 
 ```bash
 # Firebase Console > プロジェクト設定 > サービスアカウント からダウンロード
@@ -138,6 +151,121 @@ npm start
 3. チームを選択すると、そのメンバーが自動的に候補として表示
 4. 手動入力とチーム選択を柔軟に切り替え可能
 
+## 🗃️ データベース管理
+
+### ローカルファイルベースデータベース（推奨）
+
+このシステムは Firebase に依存せず、ローカルファイルでデータを管理できます：
+
+#### 特徴
+- **🚀 簡単セットアップ**: 追加設定不要で即座に利用開始
+- **💾 永続データ**: サーバー再起動後もデータが保持される
+- **🔄 自動バックアップ**: データ変更時の自動バックアップ機能
+- **📊 管理機能**: 開発用の管理インターフェース
+- **🏠 完全オフライン**: インターネット接続不要
+
+#### データ保存場所
+```
+IdentityV-Match/
+└── data/
+    ├── users.json           # ユーザー情報
+    ├── tournaments.json     # 大会情報  
+    ├── entries.json         # エントリー情報
+    ├── teams.json           # チーム情報
+    ├── settings.json        # システム設定
+    ├── series.json          # シリーズ情報
+    ├── matchResults.json    # 試合結果
+    └── backups/             # バックアップファイル
+        └── full-backup-*.json
+```
+
+#### 開発用管理機能
+
+開発環境では以下のエンドポイントが利用できます：
+
+```bash
+# データベース統計情報
+GET http://localhost:3000/dev/stats
+
+# データベース管理インターフェース
+GET http://localhost:3000/dev/database
+
+# フルバックアップ作成
+GET http://localhost:3000/dev/database/backup
+
+# データベース検証
+POST http://localhost:3000/dev/database/validate
+
+# 全データクリア（開発環境のみ）
+POST http://localhost:3000/dev/database/clear
+```
+
+#### Firebase との違い
+
+| 機能 | ローカルファイル | Firebase Firestore |
+|------|------------------|---------------------|
+| セットアップ | ✅ 設定不要 | ❌ 複雑な設定が必要 |
+| オフライン動作 | ✅ 完全対応 | ❌ インターネット必須 |
+| コスト | ✅ 無料 | ❌ 使用量に応じた課金 |
+| データ制御 | ✅ 完全なローカル管理 | ❌ 外部サービス依存 |
+| バックアップ | ✅ 簡単なファイルコピー | ❌ 専用ツールが必要 |
+| スケール | ⚖️ 中小規模に適している | ✅ 大規模対応 |
+
+### Firebase Firestore（オプション）
+
+大規模な本番環境や複数サーバー間でのデータ同期が必要な場合は Firebase も利用できます：
+
+```bash
+# .env ファイルで有効化
+USE_FIREBASE=true
+FIREBASE_PROJECT_ID=your-project-id
+```
+
+## 🛠️ 運用・メンテナンス
+
+### バックアップ
+
+**自動バックアップ**
+- データ変更時に自動的にバックアップが作成されます
+- エラー発生時も安全にデータが保護されます
+
+**手動バックアップ**
+```bash
+# 開発環境での手動バックアップ
+curl http://localhost:3000/dev/database/backup
+```
+
+**ファイルシステムバックアップ**
+```bash
+# データディレクトリ全体をバックアップ
+cp -r data/ data-backup-$(date +%Y%m%d)
+```
+
+### データ移行
+
+**ローカル → ローカル**
+```bash
+# データディレクトリをコピー
+cp -r old-instance/data/ new-instance/data/
+```
+
+**ローカル → Firebase**
+1. Firebase プロジェクトを設定
+2. `USE_FIREBASE=true` を設定
+3. データは自動的に移行されます
+
+### トラブルシューティング
+
+**データファイルが破損した場合**
+```bash
+# バックアップから復元
+cp data/backups/latest-backup.json data/
+```
+
+**パフォーマンス最適化**
+- 大量データの場合は定期的にバックアップのクリーンアップを実行
+- `data/` ディレクトリを SSD に配置することを推奨
+
 ## 🔧 開発ガイド
 
 ### プロジェクト構造
@@ -169,7 +297,11 @@ IdentityV-Match/
 ### 開発用機能
 
 #### テスト・デバッグエンドポイント（開発環境のみ）
-- `/dev/stats` - データベース統計
+- `/dev/stats` - データベース統計情報
+- `/dev/database` - データベース管理インターフェース
+- `/dev/database/backup` - フルバックアップ作成
+- `/dev/database/validate` - データベース検証
+- `/dev/database/clear` - 全データクリア
 - `/dev/test-session` - セッションテスト
 - `/test/character-form` - キャラクター追跡テスト
 - `/test/results` - 試合結果表示
