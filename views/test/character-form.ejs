@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>キャラクター追跡テスト - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/test/character-form" class="active">キャラクターテスト</a>
+                <a href="/test/results">結果表示</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>🧪 キャラクター追跡機能テスト</h2>
+            <p>プレイヤーとキャラクターを関連付ける機能のテストページです</p>
+        </div>
+
+        <div class="match-results-content">
+            <!-- Add Match Result Form -->
+            <div class="add-result-section card">
+                <h3>➕ 新しい試合結果を追加（キャラクター付き）</h3>
+                <form action="/test/match-results" method="POST" class="match-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentId">大会選択</label>
+                            <select id="tournamentId" name="tournamentId" required>
+                                <option value="">大会を選択してください</option>
+                                <% tournaments.forEach(tournament => { %>
+                                    <option value="<%= tournament.id %>"><%= tournament.title %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="seriesId">シリーズ選択（オプション）</label>
+                            <select id="seriesId" name="seriesId">
+                                <option value="">個別試合（シリーズなし）</option>
+                                <% activeSeries.forEach(series => { %>
+                                    <option value="<%= series.id %>">
+                                        <%= series.seriesTitle %> (<%= series.seriesType %>) - 
+                                        <%= series.team1Name %> vs <%= series.team2Name %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="matchTitle">試合名</label>
+                            <input type="text" id="matchTitle" name="matchTitle" required 
+                                   placeholder="例: テスト試合1">
+                        </div>
+                        <div class="form-group">
+                            <label for="hunterTeam">ハンターのチーム（シリーズの場合）</label>
+                            <select id="hunterTeam" name="hunterTeam">
+                                <option value="">選択してください</option>
+                                <option value="team1">チーム1</option>
+                                <option value="team2">チーム2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="hunterPlayer">ハンタープレイヤー</label>
+                            <input type="text" id="hunterPlayer" name="hunterPlayer" required 
+                                   placeholder="ハンターのプレイヤー名">
+                        </div>
+                        <div class="form-group">
+                            <label for="hunterCharacter">ハンターキャラクター（今後実装予定）</label>
+                            <input type="text" id="hunterCharacter" name="hunterCharacter" 
+                                   placeholder="今後実装予定" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Survivor Players Section -->
+                    <div class="survivors-section">
+                        <h4>サバイバープレイヤー</h4>
+                        <div class="survivor-players">
+                            <% for (let i = 1; i <= 4; i++) { %>
+                                <div class="survivor-row">
+                                    <div class="form-group survivor-name">
+                                        <label for="survivorPlayer<%= i %>">プレイヤー<%= i %></label>
+                                        <input type="text" id="survivorPlayer<%= i %>" name="survivorPlayer<%= i %>" 
+                                               placeholder="プレイヤー名">
+                                    </div>
+                                    <div class="form-group survivor-character">
+                                        <label for="survivorCharacter<%= i %>">キャラクター</label>
+                                        <select id="survivorCharacter<%= i %>" name="survivorCharacter<%= i %>">
+                                            <option value="">選択してください</option>
+                                            <% survivorCharacters.forEach(character => { %>
+                                                <option value="<%= character.id %>"><%= character.name %></option>
+                                            <% }); %>
+                                        </select>
+                                    </div>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eliminatedCount">吊り数</label>
+                            <select id="eliminatedCount" name="eliminatedCount" required>
+                                <option value="0">0人</option>
+                                <option value="1">1人</option>
+                                <option value="2">2人</option>
+                                <option value="3">3人</option>
+                                <option value="4">4人</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="escapedCount">逃げ数</label>
+                            <select id="escapedCount" name="escapedCount" required>
+                                <option value="0">0人</option>
+                                <option value="1">1人</option>
+                                <option value="2">2人</option>
+                                <option value="3">3人</option>
+                                <option value="4">4人</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">メモ・備考</label>
+                        <textarea id="notes" name="notes" rows="3" 
+                                  placeholder="試合に関する追加情報があれば記入してください"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 結果を保存</button>
+                        <button type="button" class="btn btn-secondary" onclick="calculatePoints()">📊 ポイント計算確認</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .match-results-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .add-result-section {
+            padding: 2rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .survivors-section {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .survivors-section h4 {
+            margin: 0 0 1rem 0;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .survivor-players {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .survivor-row {
+            display: grid;
+            grid-template-columns: 2fr 3fr;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .survivor-name input,
+        .survivor-character select {
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .survivor-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        function calculatePoints() {
+            const eliminated = parseInt(document.getElementById('eliminatedCount').value) || 0;
+            const escaped = parseInt(document.getElementById('escapedCount').value) || 0;
+            
+            if (eliminated + escaped !== 4) {
+                alert('吊り数と逃げ数の合計が4になるようにしてください。');
+                return;
+            }
+            
+            let hunterPoints = eliminated;
+            let survivorPoints = escaped;
+            
+            alert(`ポイント計算結果:\nハンター: ${hunterPoints}ポイント\nサバイバー: ${survivorPoints}ポイント`);
+        }
+        
+        // Auto-calculate escaped count when eliminated count changes
+        document.getElementById('eliminatedCount').addEventListener('change', function() {
+            const eliminated = parseInt(this.value) || 0;
+            const escaped = 4 - eliminated;
+            document.getElementById('escapedCount').value = escaped;
+        });
+        
+        // Handle form submission
+        document.querySelector('.match-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/test/match-results', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ 試合結果が保存されました！\n\n結果表示ページで確認できます。');
+                    // Reset form
+                    this.reset();
+                } else {
+                    alert('❌ エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ 保存中にエラーが発生しました: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
