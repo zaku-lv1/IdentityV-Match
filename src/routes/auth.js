@@ -3,8 +3,55 @@ const passport = require('../config/passport');
 const { getDb } = require('../config/firebase');
 const router = express.Router();
 
+// Development mode login (when Discord OAuth is not configured)
+if (process.env.NODE_ENV === 'development' && 
+    (!process.env.DISCORD_CLIENT_ID || process.env.DISCORD_CLIENT_ID === 'mock_client_id')) {
+  
+  router.get('/dev-login', async (req, res) => {
+    try {
+      const db = getDb();
+      
+      // Create a mock user for development
+      const mockUser = {
+        discordId: 'dev_user_123',
+        username: 'Developer',
+        discriminator: '0001',
+        avatar: null,
+        hunterRank: 5,
+        survivorRank: 6,
+        identityVAccountId: '123456789',
+        isAdmin: true,
+        guilds: [],
+        lastLogin: new Date(),
+        createdAt: new Date()
+      };
+      
+      // Store mock user in database
+      await db.collection('users').doc(mockUser.discordId).set(mockUser, { merge: true });
+      
+      // Log in the user
+      req.login(mockUser, (err) => {
+        if (err) {
+          console.error('Dev login error:', err);
+          return res.redirect('/?error=dev_login_failed');
+        }
+        res.redirect('/');
+      });
+    } catch (error) {
+      console.error('Dev login error:', error);
+      res.redirect('/?error=dev_login_failed');
+    }
+  });
+}
+
 // Discord OAuth login
-router.get('/discord', passport.authenticate('discord'));
+router.get('/discord', (req, res) => {
+  if (process.env.NODE_ENV === 'development' && 
+      (!process.env.DISCORD_CLIENT_ID || process.env.DISCORD_CLIENT_ID === 'mock_client_id')) {
+    return res.redirect('/auth/dev-login');
+  }
+  passport.authenticate('discord')(req, res);
+});
 
 // Discord OAuth callback
 router.get('/discord/callback',
