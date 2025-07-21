@@ -2,3 +2,5 @@
 node_modules
 src/config/firebase-service-account.json
 sessions/
+data/
+*.log

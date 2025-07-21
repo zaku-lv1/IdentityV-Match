@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大会シミュレーター - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/test/character-form">キャラクターテスト</a>
+                <a href="/test/results">結果表示</a>
+                <a href="/test/tournament-simulator" class="active">大会シミュレーター</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>🎮 大会システムシミュレーター</h2>
+            <p>大会の進行をテストするためのシミュレーション機能です</p>
+        </div>
+
+        <div class="simulator-content">
+            <!-- Quick Actions -->
+            <div class="quick-actions card">
+                <h3>⚡ クイックアクション</h3>
+                <div class="action-buttons">
+                    <button id="simulate-random-match" class="btn btn-primary">🎲 ランダム試合生成</button>
+                    <button id="create-test-series" class="btn btn-secondary">📋 テストシリーズ作成</button>
+                    <button id="backup-data" class="btn btn-info">💾 データバックアップ</button>
+                    <button id="clear-matches" class="btn btn-warning" onclick="confirmClearMatches()">🗑️ 試合データクリア</button>
+                </div>
+            </div>
+
+            <!-- Current Tournament Status -->
+            <div class="tournament-status card">
+                <h3>🏆 現在の大会状況</h3>
+                <div class="tournaments-grid">
+                    <% tournaments.forEach(tournament => { %>
+                        <div class="tournament-card">
+                            <h4><%= tournament.title %></h4>
+                            <div class="tournament-info">
+                                <p><strong>状態:</strong> 
+                                    <span class="status-badge <%= tournament.status %>"><%= tournament.status %></span>
+                                </p>
+                                <p><strong>最大エントリー:</strong> <%= tournament.maxEntries %>チーム</p>
+                                <p><strong>チームサイズ:</strong> <%= tournament.teamSize %>人</p>
+                            </div>
+                            <div class="tournament-actions">
+                                <button class="btn btn-sm btn-primary" onclick="simulateMatchForTournament('<%= tournament.id %>')">
+                                    🎯 この大会で試合生成
+                                </button>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            </div>
+
+            <!-- Active Series -->
+            <div class="series-status card">
+                <h3>📊 アクティブシリーズ</h3>
+                <% if (allSeries.length === 0) { %>
+                    <p class="no-data">現在進行中のシリーズはありません。</p>
+                <% } else { %>
+                    <div class="series-list">
+                        <% allSeries.forEach(series => { %>
+                            <div class="series-card">
+                                <div class="series-header">
+                                    <h4><%= series.seriesTitle %></h4>
+                                    <span class="series-type-badge"><%= series.seriesType %></span>
+                                </div>
+                                <div class="series-info">
+                                    <p><strong>状態:</strong> 
+                                        <span class="status-badge <%= series.status %>"><%= series.status %></span>
+                                    </p>
+                                    <p><strong>チーム:</strong> <%= series.team1Name %> vs <%= series.team2Name %></p>
+                                    <% if (series.games && series.games.length > 0) { %>
+                                        <p><strong>試合数:</strong> <%= series.games.length %></p>
+                                        <div class="game-results">
+                                            <% series.games.forEach((game, index) => { %>
+                                                <span class="game-result">
+                                                    G<%= game.gameNumber %>: <%= game.hunterPoints %>-<%= game.survivorPoints %>
+                                                    (<%= game.winner === 'team1' ? series.team1Name : series.team2Name %>)
+                                                </span>
+                                            <% }); %>
+                                        </div>
+                                    <% } %>
+                                </div>
+                                <div class="series-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="simulateMatchForSeries('<%= series.id %>', '<%= series.tournamentId %>')">
+                                        ⚔️ 次の試合を生成
+                                    </button>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Manual Match Creation -->
+            <div class="manual-creation card">
+                <h3>✏️ 手動シリーズ作成</h3>
+                <form id="create-series-form" class="create-series-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournament-select">大会選択</label>
+                            <select id="tournament-select" name="tournamentId" required>
+                                <option value="">大会を選択してください</option>
+                                <% tournaments.forEach(tournament => { %>
+                                    <option value="<%= tournament.id %>"><%= tournament.title %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="series-type">シリーズ形式</label>
+                            <select id="series-type" name="seriesType" required>
+                                <option value="BO1">BO1 (1本勝負)</option>
+                                <option value="BO3" selected>BO3 (3本中2本先取)</option>
+                                <option value="BO5">BO5 (5本中3本先取)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="team1-name">チーム1名</label>
+                            <input type="text" id="team1-name" name="team1Name" required placeholder="チームA">
+                        </div>
+                        <div class="form-group">
+                            <label for="team2-name">チーム2名</label>
+                            <input type="text" id="team2-name" name="team2Name" required placeholder="チームB">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">🆕 シリーズ作成</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- System Status -->
+            <div class="system-status card">
+                <h3>⚙️ システム状態</h3>
+                <div class="status-info">
+                    <div class="status-item">
+                        <span class="status-label">データ永続化:</span>
+                        <span class="status-value success">✅ ファイルベース永続化有効</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">環境:</span>
+                        <span class="status-value">🔧 開発モード</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">データベース:</span>
+                        <span class="status-value">📁 ローカルファイルストレージ</span>
+                    </div>
+                </div>
+                <p class="persistence-note">
+                    💡 <strong>データ永続化について:</strong> 
+                    このシステムでは試合結果や大会データがローカルファイルに保存されるため、
+                    サーバーを再起動してもデータが保持されます。
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .simulator-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .quick-actions .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .tournaments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .tournament-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tournament-card h4 {
+            margin: 0 0 1rem 0;
+            color: var(--primary-color);
+        }
+
+        .tournament-info p {
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.open {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status-badge.ongoing {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .status-badge.completed {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .series-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .series-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .series-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .series-header h4 {
+            margin: 0;
+            color: var(--accent-color);
+        }
+
+        .series-type-badge {
+            background: var(--secondary-color);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .game-results {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .game-result {
+            background: var(--border-color);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .system-status .status-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-family: monospace;
+        }
+
+        .status-value.success {
+            color: var(--success-color);
+        }
+
+        .persistence-note {
+            background: rgba(74, 144, 226, 0.1);
+            border-left: 4px solid var(--info-color);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .no-data {
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .series-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .status-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.2rem;
+            }
+        }
+    </style>
+
+    <script>
+        // Simulate random match for any tournament
+        document.getElementById('simulate-random-match').addEventListener('click', async () => {
+            try {
+                const tournaments = <%= JSON.stringify(tournaments.map(t => ({ id: t.id, title: t.title }))) %>;
+                if (tournaments.length === 0) {
+                    alert('大会が存在しません。まず大会を作成してください。');
+                    return;
+                }
+                
+                const randomTournament = tournaments[Math.floor(Math.random() * tournaments.length)];
+                await simulateMatch(randomTournament.id, null);
+            } catch (error) {
+                alert('エラー: ' + error.message);
+            }
+        });
+
+        // Simulate match for specific tournament
+        async function simulateMatchForTournament(tournamentId) {
+            await simulateMatch(tournamentId, null);
+        }
+
+        // Simulate match for specific series
+        async function simulateMatchForSeries(seriesId, tournamentId) {
+            await simulateMatch(tournamentId, seriesId);
+        }
+
+        // Common simulate match function
+        async function simulateMatch(tournamentId, seriesId) {
+            try {
+                const response = await fetch('/test/simulate-match', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tournamentId, seriesId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ ランダム試合が生成されました！\n\n結果表示ページで確認できます。');
+                    window.location.reload(); // Refresh to show updated series status
+                } else {
+                    alert('❌ エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ 試合生成中にエラーが発生しました: ' + error.message);
+            }
+        }
+
+        // Create test series
+        document.getElementById('create-series-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData);
+                
+                const response = await fetch('/test/create-test-series', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ テストシリーズが作成されました！');
+                    e.target.reset();
+                    window.location.reload();
+                } else {
+                    alert('❌ エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ シリーズ作成中にエラーが発生しました: ' + error.message);
+            }
+        });
+
+        // Backup data
+        document.getElementById('backup-data').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/test/backup-data', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ データバックアップが作成されました！\n\nファイル: ' + result.backupFile);
+                } else {
+                    alert('❌ バックアップエラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ バックアップ中にエラーが発生しました: ' + error.message);
+            }
+        });
+
+        // Clear match data with confirmation
+        async function confirmClearMatches() {
+            if (confirm('⚠️ 警告: すべての試合結果データが削除されます。\n\nこの操作は元に戻せません。続行しますか？')) {
+                try {
+                    const response = await fetch('/test/clear-match-data', {
+                        method: 'POST'
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('✅ 試合データがクリアされました。\n\n削除された試合数: ' + result.deletedCount);
+                        window.location.reload();
+                    } else {
+                        alert('❌ クリアエラー: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('❌ データクリア中にエラーが発生しました: ' + error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
