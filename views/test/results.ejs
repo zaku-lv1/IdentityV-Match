@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>試合結果表示 - Identity V Tournament</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><a href="/">Identity V Tournament</a></h1>
+            </div>
+            <div class="nav-links">
+                <a href="/test/character-form">キャラクターテスト</a>
+                <a href="/test/results" class="active">結果表示</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>📋 試合結果一覧（キャラクター情報付き）</h2>
+            <p>保存された試合結果とキャラクター情報を表示します</p>
+        </div>
+
+        <div class="results-content">
+            <% if (results.length === 0) { %>
+                <div class="no-results card">
+                    <p>まだ試合結果が記録されていません。</p>
+                    <a href="/test/character-form" class="btn btn-primary">試合結果を追加する</a>
+                </div>
+            <% } else { %>
+                <div class="results-list card">
+                    <h3>💯 記録された試合結果</h3>
+                    <% results.forEach(result => { %>
+                        <div class="result-item">
+                            <div class="result-header">
+                                <h4><%= result.matchTitle %></h4>
+                                <div class="result-score">
+                                    <span class="hunter-score"><%= result.hunterPoints %>pt</span>
+                                    :
+                                    <span class="survivor-score"><%= result.survivorPoints %>pt</span>
+                                </div>
+                            </div>
+                            
+                            <div class="match-details">
+                                <div class="hunter-section">
+                                    <h5>🩸 ハンター</h5>
+                                    <div class="player-info">
+                                        <span class="player-name"><%= result.hunterPlayer %></span>
+                                        <% if (result.hunterCharacter) { %>
+                                            <span class="character-badge hunter-char">(<%= getCharacterName(result.hunterCharacter) %>)</span>
+                                        <% } %>
+                                    </div>
+                                    <% if (result.hunterTeam) { %>
+                                        <div class="team-info">(<%= result.hunterTeam === 'team1' ? 'チーム1' : 'チーム2' %>)</div>
+                                    <% } %>
+                                </div>
+                                
+                                <div class="survivor-section">
+                                    <h5>🏃‍♂️ サバイバー</h5>
+                                    <div class="survivors-list">
+                                        <% if (Array.isArray(result.survivorPlayers)) { %>
+                                            <% result.survivorPlayers.forEach((player, index) => { %>
+                                                <div class="survivor-info">
+                                                    <span class="player-number"><%= index + 1 %>.</span>
+                                                    <span class="player-name"><%= typeof player === 'object' ? player.name : player %></span>
+                                                    <% if (typeof player === 'object' && player.character) { %>
+                                                        <span class="character-badge survivor-char">(<%= getCharacterName(player.character) %>)</span>
+                                                    <% } else { %>
+                                                        <span class="no-character">(キャラクター未選択)</span>
+                                                    <% } %>
+                                                </div>
+                                            <% }); %>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="match-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">吊り数:</span>
+                                    <span class="stat-value eliminated"><%= result.eliminatedCount %></span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">逃げ数:</span>
+                                    <span class="stat-value escaped"><%= result.escapedCount %></span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">記録日時:</span>
+                                    <span class="stat-value"><%= result.createdAt?.toDate ? result.createdAt.toDate().toLocaleString('ja-JP') : new Date(result.createdAt).toLocaleString('ja-JP') %></span>
+                                </div>
+                            </div>
+                            
+                            <% if (result.notes) { %>
+                                <div class="notes">
+                                    <strong>備考:</strong> <%= result.notes %>
+                                </div>
+                            <% } %>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <style>
+        .results-content {
+            margin-top: 2rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .results-list {
+            padding: 2rem;
+        }
+
+        .result-item {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-header h4 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .result-score {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .hunter-score {
+            background: var(--error-color);
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+        }
+
+        .survivor-score {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+        }
+
+        .match-details {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .hunter-section h5,
+        .survivor-section h5 {
+            margin: 0 0 0.5rem 0;
+            color: var(--accent-color);
+            font-size: 1rem;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .player-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .character-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .hunter-char {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .survivor-char {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .no-character {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .survivors-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .survivor-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .player-number {
+            color: var(--accent-color);
+            font-weight: bold;
+            min-width: 1.5rem;
+        }
+
+        .team-info {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .match-stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .stat-value.eliminated {
+            color: var(--error-color);
+        }
+
+        .stat-value.escaped {
+            color: var(--primary-color);
+        }
+
+        .notes {
+            margin-top: 1rem;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .match-details {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .match-stats {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -4,6 +4,7 @@ const {
   getUpdatedTournamentStatus,
   formatJapaneseDate 
 } = require('../utils/tournamentUtils');
+const { getSurvivorCharacters, getCharacterName } = require('../config/characters');
 const router = express.Router();
 
 // Admin dashboard
@@ -384,7 +385,14 @@ router.get('/match-results', requireAdmin, async (req, res) => {
       ...doc.data()
     }));
     
-    res.render('admin/match-results', { user: req.user, results, tournaments, activeSeries });
+    res.render('admin/match-results', { 
+      user: req.user, 
+      results, 
+      tournaments, 
+      activeSeries,
+      survivorCharacters: getSurvivorCharacters(),
+      getCharacterName
+    });
   } catch (error) {
     console.error('Error loading match results:', error);
     res.status(500).render('error', { message: 'Failed to load match results', user: req.user });
@@ -399,12 +407,42 @@ router.post('/match-results', requireAdmin, async (req, res) => {
       seriesId,
       matchTitle,
       hunterPlayer,
-      survivorPlayers,
+      hunterCharacter,
+      survivorPlayer1,
+      survivorCharacter1,
+      survivorPlayer2,
+      survivorCharacter2,
+      survivorPlayer3,
+      survivorCharacter3,
+      survivorPlayer4,
+      survivorCharacter4,
       eliminatedCount,
       escapedCount,
       hunterTeam,
       notes
     } = req.body;
+
+    // Build survivor players array with character information
+    const survivorPlayers = [];
+    for (let i = 1; i <= 4; i++) {
+      const playerName = req.body[`survivorPlayer${i}`];
+      const characterId = req.body[`survivorCharacter${i}`];
+      
+      if (playerName && playerName.trim()) {
+        survivorPlayers.push({
+          name: playerName.trim(),
+          character: characterId || null
+        });
+      }
+    }
+
+    // Validate that we have at least some survivors
+    if (survivorPlayers.length === 0) {
+      return res.status(400).render('error', { 
+        message: 'サバイバープレイヤーを最低1人入力してください', 
+        user: req.user 
+      });
+    }
     
     // Get scoring settings
     const settingsDoc = await db.collection('settings').doc('general').get();
@@ -442,8 +480,9 @@ router.post('/match-results', requireAdmin, async (req, res) => {
       gameNumber,
       matchTitle,
       hunterPlayer,
+      hunterCharacter: hunterCharacter || null,
       hunterTeam: hunterTeam || null,
-      survivorPlayers: survivorPlayers.split(',').map(p => p.trim()).filter(p => p),
+      survivorPlayers, // Now an array of objects with name and character
       eliminatedCount: parseInt(eliminatedCount),
       escapedCount: parseInt(escapedCount),
       hunterPoints,
