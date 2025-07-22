@@ -251,6 +251,90 @@ router.post('/tournaments/:id/teams/random', requireAdmin, async (req, res) => {
   }
 });
 
+// Edit team composition (admin only)
+router.put('/tournaments/:tournamentId/teams/:teamId', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const { tournamentId, teamId } = req.params;
+    const { name, memberIds } = req.body;
+    
+    // Validate input
+    if (!name || !Array.isArray(memberIds)) {
+      return res.status(400).json({ error: 'Invalid team data' });
+    }
+    
+    // Get tournament entries to validate member IDs
+    const entriesSnapshot = await db.collection('entries')
+      .where('tournamentId', '==', tournamentId)
+      .get();
+    
+    const entries = entriesSnapshot.docs.map(doc => doc.data());
+    const validMemberIds = entries.map(entry => entry.discordId);
+    
+    // Filter members to only include valid entries
+    const validMembers = entries.filter(entry => memberIds.includes(entry.discordId));
+    
+    if (validMembers.length !== memberIds.length) {
+      return res.status(400).json({ error: 'Some selected members are not registered for this tournament' });
+    }
+    
+    // Validate team size (4-7 people)
+    if (validMembers.length < 4 || validMembers.length > 7) {
+      return res.status(400).json({ error: 'Team must have 4-7 members' });
+    }
+    
+    // Check if team exists
+    const teamDoc = await db.collection('teams').doc(teamId).get();
+    if (!teamDoc.exists) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+    
+    // Update team
+    const updateData = {
+      name,
+      members: validMembers,
+      updatedAt: new Date(),
+      updatedBy: req.user.discordId
+    };
+    
+    await db.collection('teams').doc(teamId).update(updateData);
+    
+    res.json({ 
+      success: true, 
+      message: 'Team updated successfully',
+      team: { id: teamId, ...updateData }
+    });
+  } catch (error) {
+    console.error('Error updating team:', error);
+    res.status(500).json({ error: 'Failed to update team' });
+  }
+});
+
+// Delete team (admin only)
+router.delete('/tournaments/:tournamentId/teams/:teamId', requireAdmin, async (req, res) => {
+  try {
+    const db = getDb();
+    const { teamId } = req.params;
+    
+    // Check if team exists
+    const teamDoc = await db.collection('teams').doc(teamId).get();
+    if (!teamDoc.exists) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+    
+    // Delete team
+    await db.collection('teams').doc(teamId).delete();
+    
+    res.json({ 
+      success: true, 
+      message: 'Team deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting team:', error);
+    res.status(500).json({ error: 'Failed to delete team' });
+  }
+});
+
 // Settings
 router.get('/settings', requireAdmin, async (req, res) => {
   try {

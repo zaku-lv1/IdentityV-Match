@@ -13,6 +13,7 @@ const authRoutes = require('./routes/auth');
 const tournamentRoutes = require('./routes/tournaments');
 const adminRoutes = require('./routes/admin');
 const testRoutes = require('./routes/test');
+const apiRoutes = require('./routes/api');
 const { initializeFirebase, getDb } = require('./config/firebase');
 const { initDevelopmentData, showDevelopmentStats } = require('./config/development');
 
@@ -114,6 +115,7 @@ app.use('/auth', authRoutes);
 app.use('/tournaments', tournamentRoutes);
 app.use('/admin', adminRoutes);
 app.use('/test', testRoutes);
+app.use('/api', apiRoutes);
 
 // Home route
 app.get('/', async (req, res) => {
