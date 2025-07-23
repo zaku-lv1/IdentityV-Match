@@ -158,11 +158,28 @@ function validateTeamFormation(participantCount) {
   return { allowed: true, reason: null };
 }
 
+/**
+ * Validate if tournament can be started based on team count
+ * @param {number} teamCount - Number of teams in the tournament
+ * @returns {Object} - { allowed: boolean, reason: string }
+ */
+function validateTournamentStart(teamCount) {
+  if (teamCount < 2) {
+    return {
+      allowed: false,
+      reason: '大会を開始するためには少なくとも2チーム必要です'
+    };
+  }
+  
+  return { allowed: true, reason: null };
+}
+
 module.exports = {
   isEntryDeadlinePassed,
   getUpdatedTournamentStatus,
   isEntryAllowed,
   formatJapaneseDate,
   getTimeRemaining,
-  validateTeamFormation
+  validateTeamFormation,
+  validateTournamentStart
 };

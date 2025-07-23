@@ -3,7 +3,8 @@ const { getDb } = require('../config/firebase');
 const { 
   getUpdatedTournamentStatus,
   formatJapaneseDate,
-  validateTeamFormation
+  validateTeamFormation,
+  validateTournamentStart
 } = require('../utils/tournamentUtils');
 const { getSurvivorCharacters, getCharacterName, getHunterCharacters } = require('../config/characters');
 const router = express.Router();
@@ -654,6 +655,20 @@ router.put('/tournaments/:id/status', requireAdmin, async (req, res) => {
     
     if (!['open', 'closed', 'ongoing', 'finished'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    // If changing to 'ongoing', validate that tournament has at least 2 teams
+    if (status === 'ongoing') {
+      const teamsSnapshot = await db.collection('teams')
+        .where('tournamentId', '==', req.params.id)
+        .get();
+      
+      const teamCount = teamsSnapshot.size;
+      const validation = validateTournamentStart(teamCount);
+      
+      if (!validation.allowed) {
+        return res.status(400).json({ error: validation.reason });
+      }
     }
     
     await db.collection('tournaments').doc(req.params.id).update({
