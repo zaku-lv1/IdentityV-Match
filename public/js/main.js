@@ -1,5 +1,99 @@
 // メインJavaScriptファイル
 
+// Custom Alert System
+function showCustomAlert(message, type = 'info', title = null) {
+    // Remove any existing alerts
+    const existingAlert = document.querySelector('.custom-alert-overlay');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-alert-overlay';
+
+    // Create alert container
+    const alert = document.createElement('div');
+    alert.className = `custom-alert ${type}`;
+
+    // Set icon based on type
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+
+    // Set title based on type if not provided
+    const titles = {
+        success: '成功',
+        error: 'エラー',
+        warning: '警告',
+        info: '情報'
+    };
+
+    const finalTitle = title || titles[type];
+    const icon = icons[type];
+
+    // Create alert content
+    alert.innerHTML = `
+        <div class="custom-alert-header">
+            <div class="custom-alert-icon">${icon}</div>
+            <div class="custom-alert-title">${finalTitle}</div>
+        </div>
+        <div class="custom-alert-message">${message}</div>
+        <div class="custom-alert-actions">
+            <button class="btn btn-primary" onclick="closeCustomAlert()">OK</button>
+        </div>
+    `;
+
+    // Add to DOM
+    overlay.appendChild(alert);
+    document.body.appendChild(overlay);
+
+    // Add click outside to close
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            closeCustomAlert();
+        }
+    });
+
+    // Add escape key to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeCustomAlert();
+        }
+    });
+}
+
+function closeCustomAlert() {
+    const overlay = document.querySelector('.custom-alert-overlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.remove();
+        }, 300);
+    }
+}
+
+// Override the default alert function
+window.originalAlert = window.alert;
+window.alert = function(message) {
+    // Determine type based on message content
+    let type = 'info';
+    if (message.includes('✅') || message.toLowerCase().includes('成功')) {
+        type = 'success';
+    } else if (message.includes('❌') || message.toLowerCase().includes('エラー')) {
+        type = 'error';
+    } else if (message.includes('⚠️') || message.toLowerCase().includes('警告')) {
+        type = 'warning';
+    }
+    
+    // Clean the message of emoji
+    const cleanMessage = message.replace(/^[✅❌⚠️ℹ️]\s*/, '');
+    showCustomAlert(cleanMessage, type);
+};
+
 // ページロード時の初期化
 document.addEventListener('DOMContentLoaded', function() {
     // トーストメッセージの自動非表示

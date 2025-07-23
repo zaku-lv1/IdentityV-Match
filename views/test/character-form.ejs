@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>キャラクター追跡テスト - Identity V Match</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/main.js"></script>
 </head>
 <body>
     <header>
@@ -89,6 +90,13 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="hunterPlayer">ハンタープレイヤー</label>
+                            <div class="hunter-mode-toggle">
+                                <label for="hunterModeSelect">入力モード:</label>
+                                <select id="hunterModeSelect" onchange="toggleHunterMode()">
+                                    <option value="manual">手動入力</option>
+                                    <option value="team">チームから選択</option>
+                                </select>
+                            </div>
                             <select id="hunterPlayer" name="hunterPlayer" required style="display: none;">
                                 <option value="">チームメンバーを選択してください</option>
                             </select>
@@ -256,6 +264,23 @@
             border-radius: 4px;
         }
 
+        .hunter-mode-toggle {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .hunter-mode-toggle label {
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        .hunter-mode-toggle select {
+            padding: 0.25rem;
+            border-radius: 4px;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -273,14 +298,14 @@
             const escaped = parseInt(document.getElementById('escapedCount').value) || 0;
             
             if (eliminated + escaped !== 4) {
-                alert('吊り数と逃げ数の合計が4になるようにしてください。');
+                showCustomAlert('吊り数と逃げ数の合計が4になるようにしてください。', 'warning');
                 return;
             }
             
             let hunterPoints = eliminated;
             let survivorPoints = escaped;
             
-            alert(`ポイント計算結果:\nハンター: ${hunterPoints}ポイント\nサバイバー: ${survivorPoints}ポイント`);
+            showCustomAlert(`ポイント計算結果:\nハンター: ${hunterPoints}ポイント\nサバイバー: ${survivorPoints}ポイント`, 'info', 'ポイント計算結果');
         }
         
         // Auto-calculate escaped count when eliminated count changes
@@ -348,7 +373,8 @@
             
             if (!teamId) {
                 if (role === 'hunter') {
-                    toggleHunterInputMode('manual');
+                    document.getElementById('hunterModeSelect').value = 'manual';
+                    toggleHunterMode();
                 } else {
                     // For survivors, reset to manual mode
                     document.getElementById('survivorModeSelect').value = 'manual';
@@ -379,7 +405,9 @@
                 hunterPlayerSelect.add(option);
             });
             
-            toggleHunterInputMode('team');
+            // Switch to team selection mode
+            document.getElementById('hunterModeSelect').value = 'team';
+            toggleHunterMode();
         }
         
         // Populate survivor member dropdowns
@@ -400,7 +428,8 @@
         }
         
         // Toggle hunter input mode between manual and team selection
-        function toggleHunterInputMode(mode) {
+        function toggleHunterMode() {
+            const mode = document.getElementById('hunterModeSelect').value;
             const playerSelect = document.getElementById('hunterPlayer');
             const playerInput = document.getElementById('hunterPlayerInput');
             
@@ -409,11 +438,20 @@
                 playerInput.style.display = 'none';
                 playerInput.removeAttribute('required');
                 playerSelect.setAttribute('required', 'required');
+                
+                // Load team members if a team is already selected
+                const hunterTeamId = document.getElementById('hunterTeamSelect').value;
+                if (hunterTeamId) {
+                    loadTeamMembers('hunter');
+                }
             } else {
                 playerSelect.style.display = 'none';
                 playerInput.style.display = 'block';
                 playerSelect.removeAttribute('required');
                 playerInput.setAttribute('required', 'required');
+                // Clear selection
+                playerSelect.value = '';
+                playerInput.value = '';
             }
         }
         
@@ -446,7 +484,8 @@
         
         // Reset to manual mode when no teams are available
         function toggleToManualMode() {
-            toggleHunterInputMode('manual');
+            document.getElementById('hunterModeSelect').value = 'manual';
+            toggleHunterMode();
             document.getElementById('survivorModeSelect').value = 'manual';
             toggleSurvivorMode();
         }
@@ -467,17 +506,17 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('✅ 試合結果が保存されました！\n\n結果表示ページで確認できます。');
+                    showCustomAlert('試合結果が保存されました！\n\n結果表示ページで確認できます。', 'success');
                     // Reset form
                     this.reset();
                     // Reset team selection
                     document.querySelector('.team-selection-section').style.display = 'none';
                     toggleToManualMode();
                 } else {
-                    alert('❌ エラー: ' + result.error);
+                    showCustomAlert('エラー: ' + result.error, 'error');
                 }
             } catch (error) {
-                alert('❌ 保存中にエラーが発生しました: ' + error.message);
+                showCustomAlert('保存中にエラーが発生しました: ' + error.message, 'error');
             }
         });
         

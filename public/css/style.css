@@ -384,6 +384,19 @@ body {
   backdrop-filter: blur(20px);
 }
 
+/* Fix dropdown text visibility */
+.form-group select,
+.form-group select option {
+  color: var(--text-primary) !important;
+  background: var(--background-dark) !important;
+}
+
+.form-group select option:checked,
+.form-group select option:hover {
+  background: var(--primary-color) !important;
+  color: white !important;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
@@ -726,6 +739,100 @@ footer {
   }
   to {
     transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Custom Alert Styles */
+.custom-alert {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--shadow-heavy);
+  z-index: 10000;
+  min-width: 300px;
+  max-width: 500px;
+  animation: alertSlideIn 0.3s ease-out;
+}
+
+.custom-alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.custom-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.custom-alert-icon {
+  font-size: 1.5rem;
+}
+
+.custom-alert-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.custom-alert-message {
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.custom-alert-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.custom-alert.success .custom-alert-icon {
+  color: var(--success-color);
+}
+
+.custom-alert.error .custom-alert-icon {
+  color: var(--error-color);
+}
+
+.custom-alert.warning .custom-alert-icon {
+  color: var(--warning-color);
+}
+
+.custom-alert.info .custom-alert-icon {
+  color: var(--secondary-color);
+}
+
+@keyframes alertSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
     opacity: 1;
   }
 }
