@@ -4,3 +4,4 @@ src/config/firebase-service-account.json
 sessions/
 data/
 *.log
+test_*.js
