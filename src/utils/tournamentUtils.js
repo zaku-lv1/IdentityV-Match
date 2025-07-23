@@ -141,17 +141,10 @@ function getTimeRemaining(deadline) {
  * @returns {Object} - { allowed: boolean, reason: string }
  */
 function validateTeamFormation(participantCount) {
-  if (participantCount < 4) {
+  if (participantCount < 8) {
     return {
       allowed: false,
-      reason: 'チーム作成には最低4人の参加者が必要です'
-    };
-  }
-  
-  if (participantCount > 7) {
-    return {
-      allowed: false,
-      reason: '編成は最大7人までです。8人未満でないとゲームが成立しません'
+      reason: 'ランダムチーム作成には最低8人の参加者が必要です'
     };
   }
   

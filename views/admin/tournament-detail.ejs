@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= tournament.title %> - 管理画面 | Identity V Match</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/main.js"></script>
 </head>
 <body>
     <header>
@@ -137,7 +138,7 @@
                 <div class="teams-card">
                     <h3>🎯 チーム管理 (<%= teams.length %>チーム)</h3>
                     <div class="team-info-note">
-                        <p>💡 チーム編成は4〜7人で構成可能です。全てのチームが同じ人数である必要はありません。</p>
+                        <p>💡 チーム編成は4〜7人で構成可能です。ランダムチーム作成には8人以上の参加者が必要です。</p>
                     </div>
                     
                     <% if (teams.length > 0) { %>
@@ -172,12 +173,12 @@
                     <% } else { %>
                         <div class="no-teams">
                             <p>まだチームが作成されていません</p>
-                            <% if (entries.length >= 4) { %>
+                            <% if (entries.length >= 8) { %>
                                 <button onclick="createRandomTeams()" class="btn btn-primary">
                                     ランダムチーム作成
                                 </button>
                             <% } else { %>
-                                <p class="note">チーム作成には最低4人の参加者が必要です</p>
+                                <p class="note">ランダムチーム作成には最低8人の参加者が必要です（現在: <%= entries.length %>人）</p>
                             <% } %>
                         </div>
                     <% } %>
@@ -595,13 +596,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('ステータスを更新しました');
+                    showCustomAlert('ステータスを更新しました', 'success');
                     location.reload();
                 } else {
-                    alert('エラー: ' + result.error);
+                    showCustomAlert('エラー: ' + result.error, 'error');
                 }
             } catch (error) {
-                alert('ステータス更新中にエラーが発生しました');
+                showCustomAlert('ステータス更新中にエラーが発生しました', 'error');
                 console.error(error);
             }
         }
@@ -622,13 +623,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('参加者を削除しました');
+                    showCustomAlert('参加者を削除しました', 'success');
                     location.reload();
                 } else {
-                    alert('エラー: ' + result.error);
+                    showCustomAlert('エラー: ' + result.error, 'error');
                 }
             } catch (error) {
-                alert('参加者削除中にエラーが発生しました');
+                showCustomAlert('参加者削除中にエラーが発生しました', 'error');
                 console.error(error);
             }
         }
@@ -649,13 +650,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert(`${result.teamsCreated}個のチームを作成しました`);
+                    showCustomAlert(`${result.teamsCreated}個のチームを作成しました`, 'success');
                     location.reload();
                 } else {
-                    alert('エラー: ' + result.error);
+                    showCustomAlert('エラー: ' + result.error, 'error');
                 }
             } catch (error) {
-                alert('チーム作成中にエラーが発生しました');
+                showCustomAlert('チーム作成中にエラーが発生しました', 'error');
                 console.error(error);
             }
         }
@@ -676,13 +677,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('全てのチームを削除しました');
+                    showCustomAlert('全てのチームを削除しました', 'success');
                     location.reload();
                 } else {
-                    alert('エラー: ' + result.error);
+                    showCustomAlert('エラー: ' + result.error, 'error');
                 }
             } catch (error) {
-                alert('チーム削除中にエラーが発生しました');
+                showCustomAlert('チーム削除中にエラーが発生しました', 'error');
                 console.error(error);
             }
         }
@@ -703,13 +704,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('チームを削除しました');
+                    showCustomAlert('チームを削除しました', 'success');
                     location.reload();
                 } else {
-                    alert('エラー: ' + result.error);
+                    showCustomAlert('エラー: ' + result.error, 'error');
                 }
             } catch (error) {
-                alert('チーム削除中にエラーが発生しました');
+                showCustomAlert('チーム削除中にエラーが発生しました', 'error');
                 console.error(error);
             }
         }
@@ -726,7 +727,7 @@
                 const result = await response.json();
                 
                 if (!response.ok) {
-                    alert('Error: ' + result.error);
+                    showCustomAlert('Error: ' + result.error, 'error');
                     return;
                 }
                 
@@ -736,7 +737,7 @@
                 // Show modal
                 openTeamEditModal(result.teamId, result.teamName, result.members, tournamentEntries);
             } catch (error) {
-                alert('チームデータの取得中にエラーが発生しました');
+                showCustomAlert('チームデータの取得中にエラーが発生しました', 'error');
                 console.error(error);
             }
         }
@@ -828,12 +829,12 @@
             const memberIds = Array.from(checkedBoxes).map(cb => cb.value);
             
             if (!teamName.trim()) {
-                alert('チーム名を入力してください');
+                showCustomAlert('チーム名を入力してください', 'warning');
                 return;
             }
             
             if (memberIds.length < 4 || memberIds.length > 7) {
-                alert('チームメンバーは4-7人を選択してください');
+                showCustomAlert('チームメンバーは4-7人を選択してください', 'warning');
                 return;
             }
             
@@ -852,14 +853,14 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('チームを更新しました');
+                    showCustomAlert('チームを更新しました', 'success');
                     closeEditTeamModal();
                     location.reload();
                 } else {
-                    alert('Error: ' + result.error);
+                    showCustomAlert('Error: ' + result.error, 'error');
                 }
             } catch (error) {
-                alert('チーム更新中にエラーが発生しました');
+                showCustomAlert('チーム更新中にエラーが発生しました', 'error');
                 console.error(error);
             }
         }
