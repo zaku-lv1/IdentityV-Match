@@ -126,16 +126,52 @@
                             </select>
                         </div>
                     </div>
+                    
+                    <!-- Team creation mode selector -->
                     <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>チーム選択方式</label>
+                            <div class="team-mode-selector">
+                                <label class="radio-option">
+                                    <input type="radio" name="teamMode" value="existing" id="team-mode-existing" checked>
+                                    <span>既存チームから選択</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="teamMode" value="new" id="team-mode-new">
+                                    <span>新規チーム名を入力</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Team selection area -->
+                    <div id="team-selection-area" class="form-row">
+                        <div class="form-group">
+                            <label for="team1-select">チーム1</label>
+                            <select id="team1-select" name="team1Id" required>
+                                <option value="">大会を選択してからチームを選択してください</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="team2-select">チーム2</label>
+                            <select id="team2-select" name="team2Id" required>
+                                <option value="">大会を選択してからチームを選択してください</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Team input area (hidden by default) -->
+                    <div id="team-input-area" class="form-row" style="display: none;">
                         <div class="form-group">
                             <label for="team1-name">チーム1名</label>
-                            <input type="text" id="team1-name" name="team1Name" required placeholder="チームA">
+                            <input type="text" id="team1-name" name="team1Name" placeholder="チームA">
                         </div>
                         <div class="form-group">
                             <label for="team2-name">チーム2名</label>
-                            <input type="text" id="team2-name" name="team2Name" required placeholder="チームB">
+                            <input type="text" id="team2-name" name="team2Name" placeholder="チームB">
                         </div>
                     </div>
+                    
                     <div class="form-actions">
                         <button type="submit" class="btn btn-success">🆕 シリーズ作成</button>
                     </div>
@@ -173,6 +209,7 @@
             display: flex;
             flex-direction: column;
             gap: 2rem;
+            margin-bottom: 2rem;
         }
 
         .quick-actions .action-buttons {
@@ -189,19 +226,20 @@
             margin-top: 1rem;
         }
 
-        .tournament-card {
+        .tournament-card, .series-card {
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 1rem;
             background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 1rem;
         }
 
-        .tournament-card h4 {
+        .tournament-card h4, .series-card h4 {
             margin: 0 0 1rem 0;
             color: var(--primary-color);
         }
 
-        .tournament-info p {
+        .tournament-info p, .series-info p {
             margin: 0.5rem 0;
             font-size: 0.9rem;
         }
@@ -285,6 +323,32 @@
             gap: 1rem;
             margin-bottom: 1rem;
         }
+        
+        .form-row .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .team-mode-selector {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .radio-option input[type="radio"] {
+            margin: 0;
+        }
+        
+        .radio-option:hover {
+            color: var(--primary-color);
+        }
 
         .system-status .status-info {
             display: flex;
@@ -333,6 +397,14 @@
                 grid-template-columns: 1fr;
             }
             
+            .quick-actions .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .tournaments-grid {
+                grid-template-columns: 1fr;
+            }
+            
             .series-header {
                 flex-direction: column;
                 align-items: flex-start;
@@ -344,14 +416,154 @@
                 align-items: flex-start;
                 gap: 0.2rem;
             }
+            
+            .team-mode-selector {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .game-results {
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .simulator-content {
+                gap: 1.5rem;
+            }
+            
+            .tournament-card, .series-card {
+                padding: 0.75rem;
+            }
+            
+            .quick-actions .action-buttons {
+                gap: 0.75rem;
+            }
+            
+            .form-group {
+                margin-bottom: 1rem;
+            }
         }
     </style>
 
     <script>
+        // Store available teams for the selected tournament
+        let availableTeams = [];
+        
+        // Handle tournament selection change
+        document.getElementById('tournament-select').addEventListener('change', async (e) => {
+            const tournamentId = e.target.value;
+            const team1Select = document.getElementById('team1-select');
+            const team2Select = document.getElementById('team2-select');
+            
+            // Clear existing options
+            team1Select.innerHTML = '<option value="">チームを選択してください</option>';
+            team2Select.innerHTML = '<option value="">チームを選択してください</option>';
+            availableTeams = [];
+            
+            if (!tournamentId) {
+                team1Select.innerHTML = '<option value="">大会を選択してからチームを選択してください</option>';
+                team2Select.innerHTML = '<option value="">大会を選択してからチームを選択してください</option>';
+                return;
+            }
+            
+            try {
+                // Fetch teams for the selected tournament
+                const response = await fetch(`/test/api/tournaments/${tournamentId}/teams`);
+                const result = await response.json();
+                
+                if (result.teams && result.teams.length > 0) {
+                    availableTeams = result.teams;
+                    
+                    // Populate team select options
+                    result.teams.forEach(team => {
+                        const option1 = new Option(team.name, team.id);
+                        const option2 = new Option(team.name, team.id);
+                        team1Select.add(option1);
+                        team2Select.add(option2);
+                    });
+                } else {
+                    team1Select.innerHTML = '<option value="">この大会にはまだチームがありません</option>';
+                    team2Select.innerHTML = '<option value="">この大会にはまだチームがありません</option>';
+                }
+            } catch (error) {
+                console.error('Error fetching teams:', error);
+                team1Select.innerHTML = '<option value="">チーム取得エラー</option>';
+                team2Select.innerHTML = '<option value="">チーム取得エラー</option>';
+            }
+        });
+        
+        // Handle team mode switch
+        document.querySelectorAll('input[name="teamMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const teamSelectionArea = document.getElementById('team-selection-area');
+                const teamInputArea = document.getElementById('team-input-area');
+                const team1Select = document.getElementById('team1-select');
+                const team2Select = document.getElementById('team2-select');
+                const team1Input = document.getElementById('team1-name');
+                const team2Input = document.getElementById('team2-name');
+                
+                if (e.target.value === 'existing') {
+                    // Show selection dropdowns, hide text inputs
+                    teamSelectionArea.style.display = 'grid';
+                    teamInputArea.style.display = 'none';
+                    
+                    // Make selects required, remove required from inputs
+                    team1Select.required = true;
+                    team2Select.required = true;
+                    team1Input.required = false;
+                    team2Input.required = false;
+                } else {
+                    // Show text inputs, hide selection dropdowns
+                    teamSelectionArea.style.display = 'none';
+                    teamInputArea.style.display = 'grid';
+                    
+                    // Make inputs required, remove required from selects
+                    team1Select.required = false;
+                    team2Select.required = false;
+                    team1Input.required = true;
+                    team2Input.required = true;
+                }
+            });
+        });
+        
+        // Prevent selecting the same team for both slots
+        document.getElementById('team1-select').addEventListener('change', (e) => {
+            const team2Select = document.getElementById('team2-select');
+            const selectedTeam1 = e.target.value;
+            
+            // Re-populate team2 options excluding the selected team1
+            team2Select.innerHTML = '<option value="">チームを選択してください</option>';
+            availableTeams.forEach(team => {
+                if (team.id !== selectedTeam1) {
+                    const option = new Option(team.name, team.id);
+                    team2Select.add(option);
+                }
+            });
+        });
+        
+        document.getElementById('team2-select').addEventListener('change', (e) => {
+            const team1Select = document.getElementById('team1-select');
+            const selectedTeam2 = e.target.value;
+            const currentTeam1 = team1Select.value;
+            
+            // Re-populate team1 options excluding the selected team2
+            team1Select.innerHTML = '<option value="">チームを選択してください</option>';
+            availableTeams.forEach(team => {
+                if (team.id !== selectedTeam2) {
+                    const option = new Option(team.name, team.id);
+                    if (team.id === currentTeam1) {
+                        option.selected = true;
+                    }
+                    team1Select.add(option);
+                }
+            });
+        });
+
         // Simulate random match for any tournament
         document.getElementById('simulate-random-match').addEventListener('click', async () => {
             try {
-                const tournaments = <%= JSON.stringify(tournaments.map(t => ({ id: t.id, title: t.title }))) %>;
+                const tournaments = <%- JSON.stringify(tournaments.map(t => ({ id: t.id, title: t.title }))) %>;
                 if (tournaments.length === 0) {
                     alert('大会が存在しません。まず大会を作成してください。');
                     return;
@@ -406,6 +618,41 @@
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData);
                 
+                // Handle different team modes
+                if (data.teamMode === 'existing') {
+                    // Get team names from selected teams
+                    const team1Select = document.getElementById('team1-select');
+                    const team2Select = document.getElementById('team2-select');
+                    
+                    if (!data.team1Id || !data.team2Id) {
+                        alert('❌ 両方のチームを選択してください。');
+                        return;
+                    }
+                    
+                    if (data.team1Id === data.team2Id) {
+                        alert('❌ 異なるチームを選択してください。');
+                        return;
+                    }
+                    
+                    // Find team names from available teams
+                    const team1 = availableTeams.find(t => t.id === data.team1Id);
+                    const team2 = availableTeams.find(t => t.id === data.team2Id);
+                    
+                    data.team1Name = team1?.name || 'チーム1';
+                    data.team2Name = team2?.name || 'チーム2';
+                } else {
+                    // Validate that team names are provided for new teams
+                    if (!data.team1Name || !data.team2Name) {
+                        alert('❌ 両方のチーム名を入力してください。');
+                        return;
+                    }
+                    
+                    if (data.team1Name.trim() === data.team2Name.trim()) {
+                        alert('❌ 異なるチーム名を入力してください。');
+                        return;
+                    }
+                }
+                
                 const response = await fetch('/test/create-test-series', {
                     method: 'POST',
                     headers: {
@@ -419,6 +666,10 @@
                 if (result.success) {
                     alert('✅ テストシリーズが作成されました！');
                     e.target.reset();
+                    // Reset team mode to existing
+                    document.getElementById('team-mode-existing').checked = true;
+                    document.getElementById('team-selection-area').style.display = 'grid';
+                    document.getElementById('team-input-area').style.display = 'none';
                     window.location.reload();
                 } else {
                     alert('❌ エラー: ' + result.error);
